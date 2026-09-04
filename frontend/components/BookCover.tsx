@@ -27,8 +27,15 @@ export function BookCover({
   const [failed, setFailed] = useState(false);
   const showImage = Boolean(src) && !failed;
 
+  // .duotone lays var(--color-accent) over the box with mix-blend-mode: color,
+  // which keeps only the luminosity underneath — on a real 書封 that replaces the
+  // artwork with a flat blue and makes every book look alike. It stays on the
+  // 佔位框, where that treatment is the design, and comes off the moment there is
+  // an actual cover to show.
+  const frame = showImage ? "blueprint" : "blueprint duotone";
+
   return (
-    <div className={`blueprint duotone ${className}`}>
+    <div className={`${frame} ${className}`}>
       {showImage ? (
         /* next/image would fetch and cache a copy of someone elses asset on
            our server; this is deliberately a hotlink, so the rule is off. */
