@@ -88,7 +88,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                     : "全部收錄書籍"}
               </h3>
               <p className={styles.sub}>
-                共 {results.total} 筆 · 六家通路 · 取價時間{" "}
+                共 {results.total} 筆 · 五家通路 · 取價時間{" "}
                 {formatFetchedAt(results.fetchedAt)}
               </p>
             </div>

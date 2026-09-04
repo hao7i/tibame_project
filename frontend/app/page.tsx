@@ -28,7 +28,7 @@ export default async function Home() {
     <>
       <section className={styles.hero}>
         <div className={styles.heroInner}>
-          <h6 className={styles.kicker}>六大通路一次比</h6>
+          <h6 className={styles.kicker}>五大通路一次比</h6>
           <h2 className={styles.headline}>輸入書名，看它在台灣各網路書店賣多少</h2>
 
           <SearchForm variant="hero" />

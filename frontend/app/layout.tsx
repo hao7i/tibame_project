@@ -27,9 +27,9 @@ const barlowCondensed = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: "書價 BOOKPRICE.TW｜六大通路書籍比價",
+  title: "書價 BOOKPRICE.TW｜五大通路書籍比價",
   description:
-    "一次比較五南文化廣場、三民網路書店、金石堂、讀冊生活、墊腳石、Readmoo 六家網路書店的售價，並可追蹤作品、設定目標價。",
+    "一次比較五南文化廣場、三民網路書店、金石堂、讀冊生活、墊腳石五家網路書店的售價，並可追蹤作品、設定目標價。",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

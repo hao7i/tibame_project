@@ -66,7 +66,7 @@ function labelOf(
 
 /**
  * The 查詢式預覽 string, e.g.
- * `書名:"習慣" AND 出版社:"天下" AND price:[100 TO 400] AND shop:(金石堂 OR Readmoo)`.
+ * `書名:"習慣" AND 出版社:"天下" AND price:[100 TO 400] AND shop:(金石堂 OR 墊腳石)`.
  *
  * A row with a blank 關鍵字 is not a condition, so it drops out and takes its
  * 布林 operator with it — which is exactly what the API does with it, and why
