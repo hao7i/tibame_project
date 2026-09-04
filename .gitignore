@@ -1,0 +1,46 @@
+# repo 根目錄的 .gitignore。
+#
+# 建置產物與相依套件由各自的子目錄負責：
+#   backend/.gitignore   → target/、IDE 檔案
+#   frontend/.gitignore  → node_modules/、.next/、.env*
+# 這裡只處理跨專案共通的東西：機密、作業系統與編輯器的殘留檔。
+
+# ── 機密與本機設定 ──────────────────────────────────────────
+# application.yml 的資料庫與管理帳密是用 ${VAR:預設值} 的形式寫的，
+# 真正的值請放環境變數或下列被忽略的檔案，不要寫進版本庫。
+.env
+.env.*
+!.env.example
+*.local.yml
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-local.properties
+
+# Claude Code 的個人設定（.claude/settings.json 是專案共用的，要進版本庫）
+.claude/settings.local.json
+
+# ── 作業系統 ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ── 編輯器與 IDE ────────────────────────────────────────────
+.idea/
+.vs/
+.vscode/
+*.iml
+*.iws
+*.ipr
+*.swp
+*~
+
+# ── 記錄檔與當機傾印 ────────────────────────────────────────
+*.log
+hs_err_pid*
+replay_pid*
+
+# ── 暫存檔 ──────────────────────────────────────────────────
+# 注意：.scratch/ 底下的工作票是刻意進版本庫的，不要忽略整個目錄。
+*.tmp
+*.bak
