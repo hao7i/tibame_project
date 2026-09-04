@@ -46,5 +46,9 @@ replay_pid*
 # 設計稿與設計系統（唯讀參考）。CLAUDE.md 仍以 design/README.md 為
 # UI 規格的唯一來源，但該目錄只存在於本機，不隨 repo 散布。
 design/
+# 內部文件（ADR、agent 說明、通路調查）。與 design/ 同樣的處理：
+# CLAUDE.md 與部分程式碼註解仍會指向 docs/ 底下的檔案（例如通路調查、
+# ADR 0001／0002），那些指引仍然有效，但該目錄只存在於本機，不隨 repo 散布。
+docs/
 *.tmp
 *.bak
