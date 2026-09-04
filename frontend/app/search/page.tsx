@@ -39,6 +39,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     term2: firstValue(params.term2),
   };
   const searchingAdvanced = Object.values(advanced).some(Boolean);
+  // 進階搜尋 lands on this same screen, so the 找書 button has to read its
+  // 條件 as well as the 簡易搜尋 box.
+  const titleToLookUp = lookupTitle(query, advanced);
 
   const [results, facets] = await Promise.all([
     searchWorks({
@@ -113,11 +116,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <div className={`card ${styles.empty}`}>
               {/* .card keeps the 1px frame; no 註冊記號 on the 空結果 卡. */}
               <p className="card-title">找不到符合的作品</p>
+              {/* Only promise 找書 where it could actually work: it matches on
+                  書名, so an 進階搜尋 by 作者 or 出版社 gets the plain wording. */}
               <p className="card-body">
-                書目裡沒有這本書。可以換一個書名再試，或讓我們到五家通路找找看，
-                找到的話就會收錄進來並立刻比價。
+                {titleToLookUp
+                  ? "書目裡沒有這本書。可以換一個條件再試，或讓我們到五家通路找找看，找到的話就會收錄進來並立刻比價。"
+                  : "書目裡沒有符合這些條件的書。可以放寬左側的篩選條件，或換一個條件再試。"}
               </p>
-              {query ? <LookupButton query={query} /> : null}
+              {titleToLookUp ? <LookupButton query={titleToLookUp} /> : null}
             </div>
           ) : (
             // All three views read the same 作品 the server already narrowed, so
@@ -645,6 +651,35 @@ function formatFetchedAt(iso?: string): string {
 }
 
 /** A query string can repeat a key; the screens only ever mean the first one. */
+
+/**
+ * The 書名 a 找書 would go looking for, or undefined when this screen was never
+ * asked about one.
+ *
+ * 找書 matches on 書名: it hands the term to 金石堂 and keeps only listings whose
+ * title relates to it. An 進階搜尋 for 作者 or 出版社 therefore has nothing it could
+ * usefully look up, and offering the button there would promise a search that can
+ * only come back empty.
+ *
+ * A blank 欄位 counts as 書名, which is how CatalogueService reads it too.
+ */
+function lookupTitle(
+  query: string | undefined,
+  advanced: { field1?: string; term1?: string; field2?: string; term2?: string },
+): string | undefined {
+  const typed = query?.trim();
+  if (typed) {
+    return typed;
+  }
+
+  const rows = [
+    { field: advanced.field1, term: advanced.term1?.trim() },
+    { field: advanced.field2, term: advanced.term2?.trim() },
+  ];
+
+  return rows.find((row) => (!row.field || row.field === "title") && row.term)?.term;
+}
+
 function firstValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
