@@ -46,10 +46,10 @@
   padding: var(--space-8);
 }
 
-/* Split from .emptyCta: only the 會員專屬功能 block centres its CTA, and the
-   extra space above it replaces the frame that used to close the block off. */
+/* Kept separate from .emptyCta so the 會員專屬功能 block can carry the extra
+   space above its CTA that replaces the frame it used to sit in. */
 .lockedCta {
-  align-self: center;
+  align-self: flex-start;
   margin-top: var(--space-6);
 }
 

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { Blueprint } from "@/components/Blueprint";
 import { SearchForm } from "@/components/SearchForm";
 import { listFacets, searchWorks, type Facets, type WorkSummary } from "@/lib/api";
 import { FacetRail } from "./FacetRail";
@@ -184,8 +183,9 @@ function ResultCard({ work, watched }: { work: WorkSummary; watched: boolean }) 
   const detailHref = `/works/${work.isbn}`;
 
   return (
-    <Blueprint className={`card ${styles.card}`}>
-      {/* Keeps .blueprint for the 1px frame and 定位, but not the 註冊記號. */}
+    <div className={`card ${styles.card}`}>
+      {/* Neither the 卡 nor the 封面 carries 註冊記號 now. .card frames the 卡;
+          .blueprint still frames the 封面 and is the only source of its border. */}
       <div className={`blueprint duotone ${styles.cardCover}`}>
         <span className={styles.coverLabel}>封面</span>
       </div>
@@ -220,7 +220,7 @@ function ResultCard({ work, watched }: { work: WorkSummary; watched: boolean }) 
           比價
         </Link>
       </div>
-    </Blueprint>
+    </div>
   );
 }
 
