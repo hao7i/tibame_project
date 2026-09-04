@@ -75,14 +75,9 @@ export function LookupProvider({ children }: { children: ReactNode }) {
         .then((result) => {
           setRunning(false);
           setOutcome(result);
-          if (result.kind === "imported") {
-            // Whatever screen the reader ended up on, its 書目 data was fetched
-            // before these books existed.
-            router.refresh();
-          }
         });
     },
-    [router, running],
+    [running],
   );
 
   useEffect(() => {
@@ -99,7 +94,17 @@ export function LookupProvider({ children }: { children: ReactNode }) {
         ref={dialogRef}
         className={`dialog ${styles.notice}`}
         aria-labelledby="lookup-notice-title"
-        onClose={() => setOutcome(null)}
+        onClose={() => {
+          const arrived = outcome?.kind === "imported";
+          setOutcome(null);
+          // Refreshed on dismissal, never while the 彈窗 is up. router.refresh()
+          // re-renders the server tree this provider hangs from, which took the
+          // just-opened dialog down with it — the reason a successful 找書 showed
+          // nothing while 查無 and 失敗 both did.
+          if (arrived) {
+            router.refresh();
+          }
+        }}
       >
         <p id="lookup-notice-title" className="dialog-title">
           {outcome?.kind === "imported" ? "找到了" : "找書完成"}
