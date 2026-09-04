@@ -67,6 +67,24 @@ public class Offer {
     @Column(name = "product_url", length = 500)
     private String productUrl;
 
+    /**
+     * The 通路 answered that it does not carry this book.
+     *
+     * Distinct from a failed 取價: that one could not read the shop and keeps
+     * the last known price, this one got a clear answer and therefore has no
+     * price at all. The row is kept rather than deleted so a later 取價 can
+     * bring it back — 書名 matching is deliberately conservative and may report
+     * 查無 for a book the shop does stock.
+     */
+    /*
+     * Nullable on purpose. A NOT NULL column cannot be added to a table that
+     * already holds rows without a default, so ddl-auto silently fails to
+     * create it and every later query dies on the missing column. Nullable
+     * lets it be added, and null simply reads as "not disowned".
+     */
+    @Column(name = "unavailable")
+    private Boolean unavailable;
+
     @Column(name = "fetch_failed_at")
     private Instant fetchFailedAt;
 
@@ -121,8 +139,10 @@ public class Offer {
         this.stockStatus = stockStatus;
         this.fetchedAt = fetchedAt;
         this.productUrl = productUrl;
-        // A success clears the previous failure: the 報價 is current again.
+        // A success clears both previous states: the 報價 is current, and the
+        // 通路 evidently does carry the book after all.
         this.fetchFailedAt = null;
+        this.unavailable = Boolean.FALSE;
     }
 
     /**
@@ -131,6 +151,15 @@ public class Offer {
      * 售價 and 取價時間 are untouched, so the screen can keep showing the last
      * known price while saying plainly that it is no longer fresh.
      */
+    /** The 通路 says it does not carry this book. */
+    public void markUnavailable() {
+        this.unavailable = Boolean.TRUE;
+    }
+
+    public boolean isUnavailable() {
+        return Boolean.TRUE.equals(unavailable);
+    }
+
     public void recordFetchFailure(Instant attemptedAt) {
         this.fetchFailedAt = attemptedAt;
     }

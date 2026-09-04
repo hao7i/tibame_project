@@ -124,6 +124,12 @@ public class PriceRefreshService {
                     try {
                         Optional<FetchedPrice> fetched = provider.fetch(edition.getIsbn());
                         if (fetched.isEmpty()) {
+                            // A clear answer, not a failure: the 通路 does not
+                            // carry this book. Marking it stops the row being
+                            // shown with whatever price it was seeded with,
+                            // which after a 通路 replacement belongs to the shop
+                            // that used to occupy that column.
+                            offer.markUnavailable();
                             notFound++;
                             continue;
                         }

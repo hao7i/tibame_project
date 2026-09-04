@@ -488,6 +488,10 @@ public class CatalogueService {
         return work.getEditions().stream()
                 .filter(edition -> loadFilter == null || edition.getFormat() == loadFilter)
                 .flatMap(edition -> edition.getOffers().stream())
+                // A 通路 that told us it does not carry the book has no price to
+                // contribute. Dropping it here rather than at each caller keeps
+                // 最低價, 有貨通路數, the 報價表 and 追蹤清單 agreeing.
+                .filter(offer -> !offer.isUnavailable())
                 .filter(offer -> channels.isEmpty()
                         || channels.contains(offer.getChannel().getCode()))
                 .sorted(Comparator.comparingInt(offer -> offer.getChannel().getDisplayOrder()))
