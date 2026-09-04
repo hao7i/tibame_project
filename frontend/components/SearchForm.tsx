@@ -49,13 +49,17 @@ export function SearchForm({ variant, query = "", filters }: SearchFormProps) {
       )}
 
       <div className={styles.row}>
+        {/* 書名 only, though the API also matches 作者, 出版社 and ISBN: the box
+            advertises what it is for, and 進階搜尋 owns 逐欄位 searching.
+            Deliberately narrower than design/README.md, which writes
+            「書名、作者、出版社或 ISBN」 here. */}
         <input
           type="search"
           name="q"
           className={`input ${styles.field}`}
-          placeholder="書名、作者、出版社或 ISBN"
+          placeholder="書名"
           defaultValue={query}
-          aria-label="搜尋書名、作者、出版社或 ISBN"
+          aria-label="以書名搜尋"
         />
 
         {/* No .blueprint here: the 註冊記號 belong to the 書封 佔位框, and on a
