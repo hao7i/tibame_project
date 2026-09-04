@@ -82,11 +82,9 @@ public class CatalogueSeeder {
      * because 報價 point at the row: converting it carries them across, and the
      * first 取價 then corrects the prices to what 三民 actually charges.
      */
-    private static final Set<String> RETIRED_CHANNEL_CODES = Set.of("ESLITE", "BOOKS_TW");
-
     private void migrateReplacedChannels() {
         for (Channel channel : channelRepository.findAll()) {
-            if (!RETIRED_CHANNEL_CODES.contains(channel.getCode())) {
+            if (!ChannelMigration.RETIRED_CODES.contains(channel.getCode())) {
                 continue;
             }
             CHANNELS.stream()
@@ -95,6 +93,51 @@ public class CatalogueSeeder {
                     .ifPresent(spec -> channel.replaceWith(
                             spec.code(), spec.name(), spec.kind(), spec.searchUrlTemplate()));
         }
+    }
+
+    /**
+     * Give a replaced 通路 the 報價 the seed says it should have.
+     *
+     * The 報價 of the 通路 it replaced can sit on the wrong 版本 — 樂天Kobo sold
+     * 電子書 and 墊腳石 sells 紙本 — and moving a 報價 between 版本 is not safe. The
+     * collection is mapped with orphanRemoval, so removing a 報價 from one 版本
+     * schedules a delete that adding it to another does not undo; doing exactly
+     * that once destroyed four rows. Rows are therefore created where they
+     * belong and never moved.
+     *
+     * Existing rows are left untouched, so this cannot overwrite a 售價 a real
+     * 取價 has already corrected, and running it twice changes nothing.
+     */
+    private void backfillSeededOffers(Channel channel) {
+        for (WorkSpec spec : WORKS) {
+            for (OfferSpec offerSpec : spec.offers()) {
+                if (!offerSpec.channelCode().equals(channel.getCode())) {
+                    continue;
+                }
+                String isbn = (offerSpec.format() == Format.EBOOK)
+                        ? spec.ebookIsbn()
+                        : spec.paperIsbn();
+                if (isbn == null) {
+                    continue;
+                }
+                addOfferIfMissing(channel, isbn, offerSpec);
+            }
+        }
+    }
+
+    private void addOfferIfMissing(Channel channel, String isbn, OfferSpec offerSpec) {
+        workRepository.findByEditionIsbn(isbn).ifPresent(work -> work.getEditions().stream()
+                .filter(edition -> edition.getIsbn().equals(isbn))
+                .findFirst()
+                .ifPresent(edition -> {
+                    boolean present = edition.getOffers().stream()
+                            .anyMatch(offer -> offer.getChannel().getCode()
+                                    .equals(channel.getCode()));
+                    if (!present) {
+                        edition.addOffer(new Offer(
+                                channel, offerSpec.price(), offerSpec.stock(), Instant.now()));
+                    }
+                }));
     }
 
     private Map<String, Channel> seedChannels() {
@@ -115,9 +158,16 @@ public class CatalogueSeeder {
         // anything an operator may have edited in the 管理後台.
         for (ChannelSpec spec : CHANNELS) {
             Channel channel = byCode.get(spec.code());
-            if (channel != null && channel.getSearchUrlTemplate() == null) {
+            if (channel == null) {
+                continue;
+            }
+            if (channel.getSearchUrlTemplate() == null) {
                 channel.setSearchUrlTemplate(spec.searchUrlTemplate());
             }
+            // Also a backfill: a 通路 replacement can leave a 通路 holding fewer
+            // 報價 than the seed describes. Adding only what is missing repairs
+            // that without touching prices a real 取價 has since corrected.
+            backfillSeededOffers(channel);
         }
 
         return byCode;
@@ -175,7 +225,7 @@ public class CatalogueSeeder {
     private static final String SANMIN = "SANMIN";
     private static final String KINGSTONE = "KINGSTONE";
     private static final String TAAZE = "TAAZE";
-    private static final String KOBO = "KOBO";
+    private static final String TCSB = "TCSB";
     private static final String READMOO = "READMOO";
 
     /**
@@ -209,8 +259,8 @@ public class CatalogueSeeder {
                     "https://www.kingstone.com.tw/search/key/{isbn}"),
             new ChannelSpec(TAAZE, "讀冊生活", "紙本", 3,
                     "https://www.taaze.tw/rwd_searchResult.html?keyType%5B%5D=0&keyword%5B%5D={isbn}"),
-            new ChannelSpec(KOBO, "樂天Kobo", "電子書", 4,
-                    "https://www.kobo.com/tw/zh/search?query={isbn}"),
+            new ChannelSpec(TCSB, "墊腳石", "紙本", 4,
+                    "https://www.tcsb.com.tw/{isbn}"),
             new ChannelSpec(READMOO, "Readmoo", "電子書", 5,
                     "https://readmoo.com/"));
 
@@ -232,7 +282,7 @@ public class CatalogueSeeder {
                             new OfferSpec(SANMIN, Format.PAPER, 264, "3-5 個工作日"),
                             new OfferSpec(KINGSTONE, Format.PAPER, 280, "庫存有限"),
                             new OfferSpec(TAAZE, Format.PAPER, 271, "3-5 個工作日"),
-                            new OfferSpec(KOBO, Format.EBOOK, 231, "立即下載"),
+                            new OfferSpec(TCSB, Format.PAPER, 261, "有貨"),
                             new OfferSpec(READMOO, Format.EBOOK, 238, "立即下載"))),
 
             new WorkSpec("人類大歷史", "Yuval Noah Harari", "天下文化", 2018, "人文史地", 480,
@@ -246,7 +296,6 @@ public class CatalogueSeeder {
                             new OfferSpec(SANMIN, Format.PAPER, 384, "3-5 個工作日"),
                             new OfferSpec(KINGSTONE, Format.PAPER, 408, "現貨"),
                             new OfferSpec(TAAZE, Format.PAPER, 394, "3-5 個工作日"),
-                            new OfferSpec(KOBO, Format.EBOOK, 336, "立即下載"),
                             new OfferSpec(READMOO, Format.EBOOK, 340, "立即下載"))),
 
             new WorkSpec("被討厭的勇氣", "岸見一郎、古賀史健", "究竟", 2014, "心理勵志", 300,
@@ -258,7 +307,7 @@ public class CatalogueSeeder {
                             new OfferSpec(SANMIN, Format.PAPER, 240, "3-5 個工作日"),
                             new OfferSpec(KINGSTONE, Format.PAPER, 255, "現貨"),
                             new OfferSpec(TAAZE, Format.PAPER, 246, "3-5 個工作日"),
-                            new OfferSpec(KOBO, Format.EBOOK, 210, "立即下載"),
+                            new OfferSpec(TCSB, Format.PAPER, 237, "有貨"),
                             new OfferSpec(READMOO, Format.EBOOK, 213, "立即下載"))),
 
             new WorkSpec("正義：一場思辨之旅", "Michael J. Sandel", "先覺", 2018, "人文史地", 420,
@@ -270,7 +319,6 @@ public class CatalogueSeeder {
                             new OfferSpec(SANMIN, Format.PAPER, 336, "3-5 個工作日"),
                             new OfferSpec(KINGSTONE, Format.PAPER, 357, "訂購後 5 日"),
                             new OfferSpec(TAAZE, Format.PAPER, 344, "3-5 個工作日"),
-                            new OfferSpec(KOBO, Format.EBOOK, 294, "立即下載"),
                             new OfferSpec(READMOO, Format.EBOOK, 298, "立即下載"))),
 
             new WorkSpec("如何閱讀一本書", "Mortimer J. Adler", "台灣商務", 2003, "人文史地", 500,

@@ -34,10 +34,10 @@ import tw.bookprice.seed.CatalogueSeeder;
 @ActiveProfiles("test")
 class WatchListApiTest {
 
-    /** 原子習慣: 紙本 ISBN, 最低價 231 at 樂天Kobo. */
+    /** 原子習慣: 紙本 ISBN, 最低價 238 at Readmoo. */
     private static final String ATOMIC_PAPER = "9789861755267";
     private static final String ATOMIC_EBOOK = "9789861755274";
-    private static final int ATOMIC_BEST = 231;
+    private static final int ATOMIC_BEST = 238;
 
     private static final String EMAIL = "watcher@example.com";
     private static final String PASSWORD = "watch me now";

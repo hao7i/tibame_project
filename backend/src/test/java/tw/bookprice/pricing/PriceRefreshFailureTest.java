@@ -91,9 +91,9 @@ class PriceRefreshFailureTest {
                         .value(org.hamcrest.Matchers.hasItem(true)))
                 .andExpect(jsonPath("$.offers[?(@.channelCode == 'KINGSTONE')].price")
                         .value(org.hamcrest.Matchers.hasItem(280)))
-                .andExpect(jsonPath("$.offers[?(@.channelCode == 'KOBO')].stale")
+                .andExpect(jsonPath("$.offers[?(@.channelCode == 'READMOO')].stale")
                         .value(org.hamcrest.Matchers.hasItem(false)))
-                .andExpect(jsonPath("$.bestPrice.price").value(231));
+                .andExpect(jsonPath("$.bestPrice.price").value(238));
     }
 
     @Test

@@ -34,7 +34,7 @@ const CHANNEL_TINTS: Record<string, ChannelTint> = {
     text: "var(--color-accent-2-900)",
     subText: "var(--color-accent-2-900)",
   },
-  KOBO: {
+  TCSB: {
     background: "var(--color-accent-700)",
     text: "var(--color-bg)",
     subText: "var(--color-accent-200)",

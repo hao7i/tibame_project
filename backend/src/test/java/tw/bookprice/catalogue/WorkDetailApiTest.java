@@ -68,9 +68,13 @@ class WorkDetailApiTest {
     void offersAreSortedByPriceByDefault() throws Exception {
         mockMvc.perform(get("/api/works/{isbn}", ATOMIC_HABITS_PAPER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.offers[0].price").value(231))
-                .andExpect(jsonPath("$.offers[1].price").value(238))
+                .andExpect(jsonPath("$.offers[0].price").value(238))
+                // 五南 and 墊腳石 both ask 261; ties fall back to 通路 order, so the
+                // table never reshuffles between requests.
+                .andExpect(jsonPath("$.offers[1].price").value(261))
+                .andExpect(jsonPath("$.offers[1].channelCode").value("WUNAN"))
                 .andExpect(jsonPath("$.offers[2].price").value(261))
+                .andExpect(jsonPath("$.offers[2].channelCode").value("TCSB"))
                 .andExpect(jsonPath("$.offers[5].price").value(280));
     }
 
@@ -92,12 +96,12 @@ class WorkDetailApiTest {
                 .andExpect(jsonPath("$.offers[?(@.best == true)]", hasSize(1)))
                 // Default sort is 價格低→高, so the 最低價 row is also the first one.
                 .andExpect(jsonPath("$.offers[0].best").value(true))
-                .andExpect(jsonPath("$.offers[0].channel").value("樂天Kobo"))
+                .andExpect(jsonPath("$.offers[0].channel").value("Readmoo"))
                 .andExpect(jsonPath("$.offers[1].best").value(false))
-                .andExpect(jsonPath("$.bestPrice.channel").value("樂天Kobo"))
-                .andExpect(jsonPath("$.bestPrice.price").value(231))
-                // 較定價省: 330 - 231
-                .andExpect(jsonPath("$.bestPrice.savingVsListPrice").value(99));
+                .andExpect(jsonPath("$.bestPrice.channel").value("Readmoo"))
+                .andExpect(jsonPath("$.bestPrice.price").value(238))
+                // 較定價省: 330 - 238
+                .andExpect(jsonPath("$.bestPrice.savingVsListPrice").value(92));
     }
 
     @Test
@@ -105,8 +109,8 @@ class WorkDetailApiTest {
     void theFormatFilterMovesBothTheTableAndTheBestPriceCard() throws Exception {
         mockMvc.perform(get("/api/works/{isbn}", ATOMIC_HABITS_PAPER).param("format", "PAPER"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.offers.length()").value(4))
-                .andExpect(jsonPath("$.channelCount").value(4))
+                .andExpect(jsonPath("$.offers.length()").value(5))
+                .andExpect(jsonPath("$.channelCount").value(5))
                 .andExpect(jsonPath("$.bestPrice.channel").value("五南文化廣場"))
                 .andExpect(jsonPath("$.bestPrice.price").value(261))
                 .andExpect(jsonPath("$.offers[?(@.best == true)]", hasSize(1)))
@@ -123,8 +127,12 @@ class WorkDetailApiTest {
                 .andExpect(jsonPath("$.offers[0].formatLabel").value("紙本平裝"))
                 .andExpect(jsonPath("$.offers[0].stockStatus").value("24 小時到貨"))
                 .andExpect(jsonPath("$.offers[0].discountLabel").value("79 折"))
-                .andExpect(jsonPath("$.offers[4].formatLabel").value("電子書 EPUB"))
-                .andExpect(jsonPath("$.offers[4].stockStatus").value("立即下載"));
+                .andExpect(jsonPath("$.offers[4].channelCode").value("TCSB"))
+                .andExpect(jsonPath("$.offers[4].formatLabel").value("紙本平裝"))
+                // Readmoo is the only 電子書 通路 left, so it is the row that
+                // proves the 版本 columns still differ per 報價.
+                .andExpect(jsonPath("$.offers[5].formatLabel").value("電子書 EPUB"))
+                .andExpect(jsonPath("$.offers[5].stockStatus").value("立即下載"));
     }
 
     @Test
@@ -135,9 +143,13 @@ class WorkDetailApiTest {
                 // 金石堂 sells the 紙本 版本.
                 .andExpect(jsonPath("$.offers[2].purchaseUrl")
                         .value("https://www.kingstone.com.tw/search/key/" + ATOMIC_HABITS_PAPER))
-                // 樂天Kobo sells the 電子書 版本, so its link must carry that ISBN.
+                // 墊腳石 also sells the 紙本 版本, and its link is the ISBN itself.
+                // No 電子書 通路 has an ISBN link template any more — Readmoo only
+                // gets its site root, because its ISBN search is not established
+                // and /search/ is robots-disallowed — so the 電子書 half of this
+                // rule is no longer demonstrable here.
                 .andExpect(jsonPath("$.offers[4].purchaseUrl")
-                        .value("https://www.kobo.com/tw/zh/search?query=" + ATOMIC_HABITS_EBOOK));
+                        .value("https://www.tcsb.com.tw/" + ATOMIC_HABITS_PAPER));
     }
 
     @Test

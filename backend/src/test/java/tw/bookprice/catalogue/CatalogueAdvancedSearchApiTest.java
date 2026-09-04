@@ -196,11 +196,11 @@ class CatalogueAdvancedSearchApiTest {
         mockMvc.perform(get("/api/works")
                         .param("field1", "author").param("term1", "clear")
                         .param("format", "EBOOK")
-                        .param("channel", "KOBO"))
+                        .param("channel", "READMOO"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.works[0].title").value("原子習慣"))
-                .andExpect(jsonPath("$.works[0].bestPrice.channel").value("樂天Kobo"))
-                .andExpect(jsonPath("$.works[0].bestPrice.price").value(231));
+                .andExpect(jsonPath("$.works[0].bestPrice.channel").value("Readmoo"))
+                .andExpect(jsonPath("$.works[0].bestPrice.price").value(238));
     }
 }

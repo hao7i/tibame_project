@@ -57,9 +57,16 @@ public final class JsonLdOffers {
         return nodes;
     }
 
-    /** The ISBN a block declares, from isbn, gtin13 or mpn, whichever it uses. */
+    /**
+     * The ISBN a block declares, from whichever field that 通路 uses.
+     *
+     * Order matters. sku is last because it is only sometimes the ISBN: 墊腳石
+     * publishes nothing else, but 金石堂 puts its own internal product number
+     * there while giving the ISBN its own field. Reading sku first would make
+     * that shop appear to declare an ISBN it never claimed.
+     */
     public static String isbnOf(JsonNode node) {
-        for (String field : new String[] {"isbn", "gtin13", "mpn"}) {
+        for (String field : new String[] {"isbn", "gtin13", "mpn", "sku"}) {
             JsonNode value = node.get(field);
             if (value != null && !value.asText().isBlank()) {
                 return value.asText().trim();

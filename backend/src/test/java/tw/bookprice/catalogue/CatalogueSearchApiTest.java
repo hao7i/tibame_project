@@ -128,11 +128,12 @@ class CatalogueSearchApiTest {
         mockMvc.perform(get("/api/works").param("q", "原子習慣"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.works[0].listPrice").value(330))
-                .andExpect(jsonPath("$.works[0].bestPrice.channel").value("樂天Kobo"))
-                .andExpect(jsonPath("$.works[0].bestPrice.price").value(231))
-                .andExpect(jsonPath("$.works[0].bestPrice.discountPercent").value(70))
-                // A round ten percent reads 「7 折」, not 「70 折」.
-                .andExpect(jsonPath("$.works[0].bestPrice.discountLabel").value("7 折"));
+                // The cheapest 報價 is the 電子書 one, so 最低價 has to reach across
+                // 版本 rather than stopping at the 紙本 ones.
+                .andExpect(jsonPath("$.works[0].bestPrice.channel").value("Readmoo"))
+                .andExpect(jsonPath("$.works[0].bestPrice.price").value(238))
+                .andExpect(jsonPath("$.works[0].bestPrice.discountPercent").value(72))
+                .andExpect(jsonPath("$.works[0].bestPrice.discountLabel").value("72 折"));
     }
 
     @Test
@@ -164,8 +165,10 @@ class CatalogueSearchApiTest {
                 .andExpect(jsonPath("$.works[0].channelPrices[0].channel").value("五南文化廣場"))
                 .andExpect(jsonPath("$.works[0].channelPrices[0].price").value(261))
                 .andExpect(jsonPath("$.works[0].channelPrices[0].format").value("PAPER"))
-                .andExpect(jsonPath("$.works[0].channelPrices[4].channel").value("樂天Kobo"))
-                .andExpect(jsonPath("$.works[0].channelPrices[4].format").value("EBOOK"));
+                .andExpect(jsonPath("$.works[0].channelPrices[4].channel").value("墊腳石"))
+                .andExpect(jsonPath("$.works[0].channelPrices[4].format").value("PAPER"))
+                .andExpect(jsonPath("$.works[0].channelPrices[5].channel").value("Readmoo"))
+                .andExpect(jsonPath("$.works[0].channelPrices[5].format").value("EBOOK"));
     }
 
     @Test
@@ -199,10 +202,11 @@ class CatalogueSearchApiTest {
     void ebookFilterNarrowsOffersToTheEbookEdition() throws Exception {
         mockMvc.perform(get("/api/works").param("q", "原子習慣").param("format", "EBOOK"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.works[0].channelPrices.length()").value(2))
-                .andExpect(jsonPath("$.works[0].channelCount").value(2))
-                .andExpect(jsonPath("$.works[0].bestPrice.channel").value("樂天Kobo"))
-                .andExpect(jsonPath("$.works[0].bestPrice.price").value(231));
+                // Readmoo is the only 電子書 通路 left.
+                .andExpect(jsonPath("$.works[0].channelPrices.length()").value(1))
+                .andExpect(jsonPath("$.works[0].channelCount").value(1))
+                .andExpect(jsonPath("$.works[0].bestPrice.channel").value("Readmoo"))
+                .andExpect(jsonPath("$.works[0].bestPrice.price").value(238));
     }
 
     @Test
@@ -210,8 +214,9 @@ class CatalogueSearchApiTest {
     void paperFilterExcludesTheCheaperEbookOffers() throws Exception {
         mockMvc.perform(get("/api/works").param("q", "原子習慣").param("format", "PAPER"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.works[0].channelPrices.length()").value(4))
-                .andExpect(jsonPath("$.works[0].channelCount").value(4))
+                .andExpect(jsonPath("$.works[0].channelPrices.length()").value(5))
+                .andExpect(jsonPath("$.works[0].channelCount").value(5))
+                // 五南 and 墊腳石 both ask 261; the tie goes to the earlier 通路.
                 .andExpect(jsonPath("$.works[0].bestPrice.channel").value("五南文化廣場"))
                 .andExpect(jsonPath("$.works[0].bestPrice.price").value(261))
                 .andExpect(jsonPath("$.works[0].bestPrice.discountLabel").value("79 折"));

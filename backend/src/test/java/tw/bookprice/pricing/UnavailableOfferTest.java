@@ -31,7 +31,7 @@ import tw.bookprice.seed.CatalogueSeeder;
  * shop used to occupy that column, and presenting it as the new shop price
  * would be inventing a number.
  *
- * 原子習慣 is priced 280 at 金石堂 in the seed and 231 at 樂天Kobo, so a 金石堂
+ * 原子習慣 is priced 280 at 金石堂 in the seed and 231 at 墊腳石, so a 金石堂
  * that disowns the book must not change 最低價, while its own column must stop
  * claiming 280.
  */
@@ -83,9 +83,9 @@ class UnavailableOfferTest {
         priceRefreshService.refreshAll(true);
 
         mockMvc.perform(get("/api/works/" + ATOMIC))
-                .andExpect(jsonPath("$.bestPrice.price").value(231))
-                .andExpect(jsonPath("$.offers[?(@.channelCode == 'KOBO')].price")
-                        .value(org.hamcrest.Matchers.hasItem(231)));
+                .andExpect(jsonPath("$.bestPrice.price").value(238))
+                .andExpect(jsonPath("$.offers[?(@.channelCode == 'READMOO')].price")
+                        .value(org.hamcrest.Matchers.hasItem(238)));
     }
 
     @Test

@@ -22,6 +22,8 @@ bookprice:
       live: false
     wunan:
       live: false
+    tcsb:
+      live: false
     taaze:
       live: false
 

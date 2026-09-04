@@ -56,6 +56,10 @@ bookprice:
     # 印回頁面（連捏造的 ISBN 也一樣），所以驗證靠書名，見 WunanParsing。
     wunan:
       live: true
+    # 墊腳石：robots.txt 全站開放，ISBN 即商品網址，JSON-LD 的 sku 可回頭核對。
+    # 查無時回 404，是明確的答案而非故障。
+    tcsb:
+      live: true
     # 讀冊生活。它的伺服器送出的憑證鏈不完整（缺少 leaf 自己的簽發者），
     # 靠 BackendApplication 開啟的 AIA 補抓機制解決——見該類別的註解。
     taaze:

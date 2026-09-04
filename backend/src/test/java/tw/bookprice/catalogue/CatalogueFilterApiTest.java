@@ -42,7 +42,7 @@ class CatalogueFilterApiTest {
     @Test
     @DisplayName("選了通路之後，最低價只從那些通路的報價裡算")
     void channelFilterRecomputesTheBestPrice() throws Exception {
-        // Unfiltered, 原子習慣 is cheapest at 樂天Kobo 231.
+        // Unfiltered, 原子習慣 is cheapest at 墊腳石 231.
         mockMvc.perform(get("/api/works").param("q", "原子習慣").param("channel", "KINGSTONE"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.works[0].bestPrice.channel").value("金石堂"))
@@ -56,36 +56,43 @@ class CatalogueFilterApiTest {
     void channelsWithinTheGroupAreOred() throws Exception {
         mockMvc.perform(get("/api/works")
                         .param("q", "原子習慣")
-                        .param("channel", "KOBO")
+                        .param("channel", "TCSB")
                         .param("channel", "READMOO"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.works[0].channelCount").value(2))
-                .andExpect(jsonPath("$.works[0].bestPrice.price").value(231));
+                // 墊腳石 261 紙本 vs Readmoo 238 電子書 — 兩家之中較低的那個。
+                .andExpect(jsonPath("$.works[0].bestPrice.price").value(238));
     }
 
     @Test
     @DisplayName("跨組為 AND：分類與通路同時生效")
     void groupsAreAndedTogether() throws Exception {
-        // 人文史地 alone is three 作品; only two of them carry a 樂天Kobo 報價.
+        // 人文史地 alone is three 作品, and 墊腳石 stocks none of them.
         mockMvc.perform(get("/api/works").param("category", "人文史地"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(3));
 
         mockMvc.perform(get("/api/works")
                         .param("category", "人文史地")
-                        .param("channel", "KOBO"))
+                        .param("channel", "TCSB"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(2))
-                .andExpect(jsonPath("$.works[*].title")
-                        .value(not(hasItem("如何閱讀一本書"))));
+                .andExpect(jsonPath("$.total").value(0));
+
+        // The same 通路 against the 分類 it does stock, so the empty answer above
+        // is the AND narrowing rather than the 通路 being empty everywhere.
+        mockMvc.perform(get("/api/works")
+                        .param("category", "心理勵志")
+                        .param("channel", "TCSB"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(2));
     }
 
     @Test
     @DisplayName("在選定通路沒有報價的作品會整個消失，不是顯示空價格")
     void worksWithNoOfferInTheChosenChannelsDropOut() throws Exception {
-        mockMvc.perform(get("/api/works").param("channel", "KOBO"))
+        mockMvc.perform(get("/api/works").param("channel", "TCSB"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(4))
+                .andExpect(jsonPath("$.total").value(2))
                 .andExpect(jsonPath("$.works[*].title")
                         .value(not(hasItem("設計的設計"))));
     }
@@ -160,9 +167,13 @@ class CatalogueFilterApiTest {
                 .andExpect(jsonPath("$.channels.length()").value(6))
                 .andExpect(jsonPath("$.channels[0].code").value("WUNAN"))
                 .andExpect(jsonPath("$.channels[0].count").value(6))
-                // 樂天Kobo carries a 報價 for four of the six 作品, Readmoo for five.
-                .andExpect(jsonPath("$.channels[4].code").value("KOBO"))
-                .andExpect(jsonPath("$.channels[4].count").value(4))
+                // 墊腳石 stocks two of the six 作品, Readmoo five.
+                .andExpect(jsonPath("$.channels[4].code").value("TCSB"))
+                .andExpect(jsonPath("$.channels[4].count").value(2))
+                // Readmoo is the only 電子書 通路 left, so it is the one that may
+                // still show a count here.
+                .andExpect(jsonPath("$.channels[5].code").value("READMOO"))
+                .andExpect(jsonPath("$.channels[5].count").value(5))
                 .andExpect(jsonPath("$.channels[5].count").value(5))
                 .andExpect(jsonPath("$.categories.length()").value(3))
                 .andExpect(jsonPath("$.categories[?(@.name == '心理勵志')].count")
@@ -176,16 +187,16 @@ class CatalogueFilterApiTest {
     @Test
     @DisplayName("facet 筆數會扣掉賣不了該載體的通路，避免點了必然沒結果")
     void facetCountsRespectTheActiveFormat() throws Exception {
-        // 金石堂 and 讀冊生活 are 紙本-only; advertising a count under 電子書 would
-        // offer the reader a tick that can only ever return nothing.
+        // 金石堂, 讀冊生活 and 墊腳石 are 紙本-only; advertising a count under 電子書
+        // would offer the reader a tick that can only ever return nothing.
         mockMvc.perform(get("/api/facets").param("format", "EBOOK"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.channels[2].code").value("KINGSTONE"))
                 .andExpect(jsonPath("$.channels[2].count").value(0))
                 .andExpect(jsonPath("$.channels[3].code").value("TAAZE"))
                 .andExpect(jsonPath("$.channels[3].count").value(0))
-                .andExpect(jsonPath("$.channels[4].code").value("KOBO"))
-                .andExpect(jsonPath("$.channels[4].count").value(4))
+                .andExpect(jsonPath("$.channels[4].code").value("TCSB"))
+                .andExpect(jsonPath("$.channels[4].count").value(0))
                 // 設計的設計 is the only 藝術設計 作品 and has no 電子書 版本, so that
                 // row stays on the rail reading 0 rather than vanishing — a row
                 // that disappears reads as though the 分類 never existed.
@@ -214,10 +225,10 @@ class CatalogueFilterApiTest {
         mockMvc.perform(get("/api/works")
                         .param("q", "習慣")
                         .param("category", "心理勵志")
-                        .param("channel", "KOBO"))
+                        .param("channel", "TCSB"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.works[0].title").value("原子習慣"))
-                .andExpect(jsonPath("$.works[0].bestPrice.channel").value("樂天Kobo"));
+                .andExpect(jsonPath("$.works[0].bestPrice.channel").value("墊腳石"));
     }
 }
