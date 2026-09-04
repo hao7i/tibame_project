@@ -25,6 +25,8 @@ type SearchFormProps = {
     channels?: string[];
     categories?: string[];
     maxPrice?: string;
+    /** 呈現方式; omitted when it is the default 列表. */
+    view?: string;
   };
 };
 
@@ -71,6 +73,9 @@ export function SearchForm({
           ))}
           {filters?.maxPrice ? (
             <input type="hidden" name="maxPrice" value={filters.maxPrice} />
+          ) : null}
+          {filters?.view && filters.view !== "list" ? (
+            <input type="hidden" name="view" value={filters.view} />
           ) : null}
         </>
       )}

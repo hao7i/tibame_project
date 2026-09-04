@@ -4,11 +4,9 @@ import { Blueprint, BlueprintCorners } from "@/components/Blueprint";
 import { SearchForm } from "@/components/SearchForm";
 import { listFacets, searchWorks, type Facets, type WorkSummary } from "@/lib/api";
 import { FacetRail } from "./FacetRail";
-import { PRICE_CEILING } from "@/lib/filters";
+import { ViewSwitch } from "./ViewSwitch";
+import { DEFAULT_VIEW, PRICE_CEILING, parseView, type ViewValue } from "@/lib/filters";
 import styles from "./search.module.css";
-
-/** 呈現方式. 卡片 and 表格 arrive with the card-and-table work. */
-const VIEWS = ["列表", "卡片", "表格"];
 
 /** Only the first four 通路 pairs are shown; the rest live in the detail screen. */
 const MAX_CHANNEL_PAIRS = 4;
@@ -26,6 +24,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const categories = allValues(params.category);
   const maxPrice = firstValue(params.maxPrice);
   const page = firstValue(params.page);
+  const view = parseView(firstValue(params.view));
 
   const [results, facets] = await Promise.all([
     searchWorks({ q: query, format, channel: channels, category: categories, maxPrice, page }),
@@ -33,7 +32,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   ]);
 
   const chips = activeChips(
-    { channels, categories, maxPrice, query, format },
+    { channels, categories, maxPrice, query, format, view },
     facets,
   );
 
@@ -43,7 +42,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         variant="bar"
         query={query}
         format={format}
-        filters={{ channels, categories, maxPrice }}
+        filters={{ channels, categories, maxPrice, view }}
       />
 
       <div className={styles.layout}>
@@ -61,23 +60,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               </p>
             </div>
 
-            <div className={styles.viewSwitch}>
-              <span className={styles.viewLabel}>呈現方式</span>
-              {/* 卡片 and 表格 are wired up by the card-and-table work. */}
-              <div className="seg">
-                {VIEWS.map((view) => (
-                  <label key={view} className="seg-opt">
-                    <input
-                      type="radio"
-                      name="view"
-                      value={view}
-                      defaultChecked={view === "列表"}
-                    />
-                    {view}
-                  </label>
-                ))}
-              </div>
-            </div>
+            <ViewSwitch />
           </header>
 
           {chips.length > 0 ? (
@@ -104,11 +87,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               </p>
             </Blueprint>
           ) : (
-            <ol className={styles.list}>
-              {results.works.map((work) => (
-                <ResultRow key={work.isbn} work={work} />
-              ))}
-            </ol>
+            // All three views read the same 作品 the server already narrowed, so
+            // 篩選條件 and 載體 hold whichever one is showing.
+            <ResultBody view={view} works={results.works} channels={facets.channels} />
           )}
 
           {results.totalPages > 1 ? (
@@ -122,6 +103,194 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       </div>
     </>
   );
+}
+
+/** The 作品 drawn in whichever 呈現方式 is active. */
+function ResultBody({
+  view,
+  works,
+  channels,
+}: {
+  view: ViewValue;
+  works: WorkSummary[];
+  channels: Facets["channels"];
+}) {
+  if (view === "cards") {
+    return (
+      <div className={styles.cards}>
+        {works.map((work) => (
+          <ResultCard key={work.isbn} work={work} />
+        ))}
+      </div>
+    );
+  }
+
+  if (view === "table") {
+    return <ResultTable works={works} channels={channels} />;
+  }
+
+  return (
+    <ol className={styles.list}>
+      {works.map((work) => (
+        <ResultRow key={work.isbn} work={work} />
+      ))}
+    </ol>
+  );
+}
+
+/** One 作品 in 卡片 view. */
+function ResultCard({ work }: { work: WorkSummary }) {
+  const detailHref = `/works/${work.isbn}`;
+
+  return (
+    <Blueprint className={`card ${styles.card}`}>
+      <div className={`blueprint duotone ${styles.cardCover}`}>
+        <span className={styles.coverLabel}>封面</span>
+        <BlueprintCorners />
+      </div>
+
+      <span className="card-kicker">{work.category}</span>
+      <Link href={detailHref} className={`card-title ${styles.cardTitle}`}>
+        {work.title}
+      </Link>
+      <p className="card-body">{byline(work)}</p>
+
+      <div className={styles.cardPrice}>
+        <div>
+          <p className={styles.cardBestLabel}>最低 · {work.bestPrice?.channel}</p>
+          <p className={styles.cardBestPrice}>NT$ {work.bestPrice?.price}</p>
+        </div>
+        {/* 折扣 is absent when 售價 is at or above 定價. */}
+        {work.bestPrice?.discountLabel ? (
+          <span className="tag tag-accent">{work.bestPrice.discountLabel}</span>
+        ) : null}
+      </div>
+
+      <p className="card-meta">
+        定價 {work.listPrice} · {work.channelCount} 個通路
+      </p>
+
+      <div className={styles.cardActions}>
+        {/* 追蹤 becomes a real toggle with the watch-list work. */}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          aria-label={`追蹤 ${work.title}`}
+        >
+          <Star size={16} strokeWidth={1.5} />
+        </button>
+        <Link
+          href={detailHref}
+          className={`btn btn-primary blueprint ${styles.cardCompare}`}
+        >
+          比價
+          <BlueprintCorners />
+        </Link>
+      </div>
+    </Blueprint>
+  );
+}
+
+/**
+ * 表格 view — one column per 通路, so a price can be read down a column as well
+ * as across a row, which is the whole point of this view.
+ *
+ * The columns are every 通路 the 書目 carries, not merely the ones on this page:
+ * a column that came and went between pages would make the table unreadable.
+ */
+function ResultTable({
+  works,
+  channels,
+}: {
+  works: WorkSummary[];
+  channels: Facets["channels"];
+}) {
+  return (
+    // Nine columns do not fit 390px, so the table scrolls inside its own box
+    // rather than pushing the whole page sideways.
+    <div className={styles.tableScroll}>
+      {/* The design system's .table supplies the base; the dark header and the
+          numeric alignment come from .tableScroll table in this module. */}
+      <table className="table">
+        <thead>
+          <tr>
+            <th scope="col">書名</th>
+            <th scope="col">作者／出版</th>
+            {channels.map((channel) => (
+              <th key={channel.code} scope="col" className={styles.numeric}>
+                {channel.name}
+              </th>
+            ))}
+            <th scope="col" className={styles.numeric}>
+              最低價
+            </th>
+            <th scope="col">追蹤</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {works.map((work) => (
+            <tr key={work.isbn}>
+              <td className={styles.tableTitle}>
+                <Link href={`/works/${work.isbn}`} className={styles.titleLink}>
+                  {work.title}
+                </Link>
+              </td>
+              <td className={styles.tableByline}>{byline(work)}</td>
+
+              {channels.map((channel) => {
+                const price = priceAt(work, channel.code);
+                const best = price !== null && price === work.bestPrice?.price;
+
+                return (
+                  <td
+                    key={channel.code}
+                    className={`${styles.numeric} ${
+                      price === null
+                        ? styles.noOffer
+                        : best
+                          ? styles.bestCell
+                          : ""
+                    }`}
+                  >
+                    {price === null ? "—" : `NT$ ${price}`}
+                  </td>
+                );
+              })}
+
+              <td className={`${styles.numeric} ${styles.tableBest}`}>
+                NT$ {work.bestPrice?.price}
+              </td>
+              <td>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  aria-label={`追蹤 ${work.title}`}
+                >
+                  <Star size={16} strokeWidth={1.5} />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/**
+ * 售價 of one 通路 for one 作品, or null when it carries no 報價 — which is also
+ * what a 通路 excluded by the 篩選條件 reads as, since its 報價 no longer counts.
+ *
+ * A 通路 selling both 載體 of the same 作品 has two 報價 in the row; the cell shows
+ * the cheaper of them, the only one that can ever win 最低價.
+ */
+function priceAt(work: WorkSummary, channelCode: string): number | null {
+  const prices = work.channelPrices
+    .filter((entry) => entry.channelCode === channelCode)
+    .map((entry) => entry.price);
+
+  return prices.length === 0 ? null : Math.min(...prices);
 }
 
 /** One 作品 in 列表 view. */
@@ -286,11 +455,13 @@ function activeChips(
     maxPrice?: string;
     query?: string;
     format?: string;
+    view: ViewValue;
   },
   facets: Facets,
 ): Chip[] {
-  // 搜尋 term and 載體 are not 篩選條件, so every chip link carries them onward;
-  // page is always dropped, since removing a filter can shrink the page count.
+  // 搜尋 term, 載體 and 呈現方式 are not 篩選條件, so every chip link carries them
+  // onward; page is always dropped, since removing a filter can shrink the
+  // page count.
   const hrefWithout = (key: string, value: string) => {
     const params = new URLSearchParams();
     if (selection.query) {
@@ -298,6 +469,9 @@ function activeChips(
     }
     if (selection.format) {
       params.set("format", selection.format);
+    }
+    if (selection.view !== DEFAULT_VIEW) {
+      params.set("view", selection.view);
     }
     for (const code of selection.channels) {
       if (!(key === "channel" && code === value)) {
