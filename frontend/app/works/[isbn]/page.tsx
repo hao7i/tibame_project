@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Plus } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Blueprint, BlueprintCorners } from "@/components/Blueprint";
 import { fetchWorkDetail, type OfferView, type WorkDetail } from "@/lib/api";
 import { channelSwatch } from "@/lib/channels";
+import { currentMember } from "@/lib/session";
+import { listWatchItems } from "@/lib/watchlist";
+import { WatchToggle } from "@/components/WatchToggle";
+import { DropNotificationCard } from "./DropNotificationCard";
 import styles from "./work.module.css";
 
 /** 版本 switcher. The empty value is 全部版本. */
@@ -33,6 +37,16 @@ export default async function WorkPage({ params, searchParams }: WorkPageProps) 
   if (!work) {
     notFound();
   }
+
+  // 追蹤 state is read per 作品, addressed by the canonical ISBN the response
+  // carries rather than the one in the URL — either 版本 ISBN reaches this page,
+  // and both must show the same 追蹤中.
+  const member = await currentMember();
+  const watchItem = member
+    ? (await listWatchItems()).find((item) => item.isbn === work.isbn)
+    : undefined;
+  const watched = watchItem !== undefined;
+  const targetPrice = watchItem?.targetPrice;
 
   return (
     <div className={styles.page}>
@@ -108,8 +122,12 @@ export default async function WorkPage({ params, searchParams }: WorkPageProps) 
         </div>
 
         <aside className={styles.side}>
-          <BestPriceCard work={work} />
-          <DropNotificationCard />
+          <BestPriceCard work={work} watched={watched} />
+          <DropNotificationCard
+            isbn={work.isbn}
+            loggedIn={member !== null}
+            targetPrice={targetPrice}
+          />
         </aside>
       </div>
     </div>
@@ -143,7 +161,7 @@ function OfferRow({ offer }: { offer: OfferView }) {
   );
 }
 
-function BestPriceCard({ work }: { work: WorkDetail }) {
+function BestPriceCard({ work, watched }: { work: WorkDetail; watched: boolean }) {
   const best = work.bestPrice;
 
   return (
@@ -170,52 +188,16 @@ function BestPriceCard({ work }: { work: WorkDetail }) {
         <p className="card-body">這個載體目前沒有報價可以比較。</p>
       )}
 
-      {/* 追蹤 becomes a real toggle with the watch-list work. */}
-      <button type="button" className={`btn btn-secondary ${styles.blockButton}`}>
-        <Plus size={16} strokeWidth={1.5} />
-        追蹤價格
-      </button>
+      <WatchToggle
+        isbn={work.isbn}
+        title={work.title}
+        watched={watched}
+        className={styles.blockButton}
+      />
     </Blueprint>
   );
 }
 
-/**
- * The 會員 half of this card is written but unreachable: nothing can sign in
- * yet, so 降價通知 renders its signed-out branch, exactly as SiteHeader does.
- */
-function DropNotificationCard({ loggedIn = false }: { loggedIn?: boolean }) {
-  return (
-    <Blueprint className={`card ${styles.card}`}>
-      <p className="card-kicker">降價通知</p>
-      <p className="card-body">
-        {loggedIn
-          ? "設定目標價，低於此價時通知你。"
-          : "降價通知為會員功能，登入後可設定目標價。"}
-      </p>
-
-      <div className={`field ${styles.targetField}`}>
-        <label htmlFor="target-price">目標價 NT$</label>
-        <input
-          id="target-price"
-          className="input"
-          type="number"
-          inputMode="numeric"
-          disabled={!loggedIn}
-        />
-      </div>
-
-      {loggedIn ? (
-        <button type="button" className={`btn btn-secondary ${styles.blockButton}`}>
-          設定通知
-        </button>
-      ) : (
-        <Link href="/login" className={`btn btn-secondary ${styles.blockButton}`}>
-          登入以設定通知
-        </Link>
-      )}
-    </Blueprint>
-  );
-}
 
 /**
  * A 通路 without an established link still gets a button, but a disabled one —

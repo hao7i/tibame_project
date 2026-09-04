@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Plus, Star, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Blueprint, BlueprintCorners } from "@/components/Blueprint";
 import { SearchForm } from "@/components/SearchForm";
 import { listFacets, searchWorks, type Facets, type WorkSummary } from "@/lib/api";
 import { FacetRail } from "./FacetRail";
+import { WatchToggle } from "@/components/WatchToggle";
+import { listWatchItems } from "@/lib/watchlist";
+import { currentMember } from "@/lib/session";
 import { ViewSwitch } from "./ViewSwitch";
 import { DEFAULT_VIEW, PRICE_CEILING, parseView, type ViewValue } from "@/lib/filters";
 import styles from "./search.module.css";
@@ -52,6 +55,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     }),
     listFacets(format),
   ]);
+
+  // 追蹤中 state for the toggles. One read for the whole page rather than one
+  // per row, and an empty set when nobody is signed in.
+  const member = await currentMember();
+  const watchedIsbns = new Set(
+    member ? (await listWatchItems()).map((item) => item.isbn) : [],
+  );
 
   const chips = activeChips(
     { channels, categories, maxPrice, query, format, view, advanced },
@@ -115,7 +125,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           ) : (
             // All three views read the same 作品 the server already narrowed, so
             // 篩選條件 and 載體 hold whichever one is showing.
-            <ResultBody view={view} works={results.works} channels={facets.channels} />
+            <ResultBody
+              view={view}
+              works={results.works}
+              channels={facets.channels}
+              watchedIsbns={watchedIsbns}
+            />
           )}
 
           {results.totalPages > 1 ? (
@@ -136,36 +151,40 @@ function ResultBody({
   view,
   works,
   channels,
+  watchedIsbns,
 }: {
   view: ViewValue;
   works: WorkSummary[];
   channels: Facets["channels"];
+  watchedIsbns: Set<string>;
 }) {
   if (view === "cards") {
     return (
       <div className={styles.cards}>
         {works.map((work) => (
-          <ResultCard key={work.isbn} work={work} />
+          <ResultCard key={work.isbn} work={work} watched={watchedIsbns.has(work.isbn)} />
         ))}
       </div>
     );
   }
 
   if (view === "table") {
-    return <ResultTable works={works} channels={channels} />;
+    return (
+      <ResultTable works={works} channels={channels} watchedIsbns={watchedIsbns} />
+    );
   }
 
   return (
     <ol className={styles.list}>
       {works.map((work) => (
-        <ResultRow key={work.isbn} work={work} />
+        <ResultRow key={work.isbn} work={work} watched={watchedIsbns.has(work.isbn)} />
       ))}
     </ol>
   );
 }
 
 /** One 作品 in 卡片 view. */
-function ResultCard({ work }: { work: WorkSummary }) {
+function ResultCard({ work, watched }: { work: WorkSummary; watched: boolean }) {
   const detailHref = `/works/${work.isbn}`;
 
   return (
@@ -197,14 +216,7 @@ function ResultCard({ work }: { work: WorkSummary }) {
       </p>
 
       <div className={styles.cardActions}>
-        {/* 追蹤 becomes a real toggle with the watch-list work. */}
-        <button
-          type="button"
-          className="btn btn-secondary"
-          aria-label={`追蹤 ${work.title}`}
-        >
-          <Star size={16} strokeWidth={1.5} />
-        </button>
+        <WatchToggle isbn={work.isbn} title={work.title} watched={watched} variant="icon" />
         <Link
           href={detailHref}
           className={`btn btn-primary blueprint ${styles.cardCompare}`}
@@ -227,9 +239,11 @@ function ResultCard({ work }: { work: WorkSummary }) {
 function ResultTable({
   works,
   channels,
+  watchedIsbns,
 }: {
   works: WorkSummary[];
   channels: Facets["channels"];
+  watchedIsbns: Set<string>;
 }) {
   return (
     // Nine columns do not fit 390px, so the table scrolls inside its own box
@@ -288,13 +302,12 @@ function ResultTable({
                 NT$ {work.bestPrice?.price}
               </td>
               <td>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  aria-label={`追蹤 ${work.title}`}
-                >
-                  <Star size={16} strokeWidth={1.5} />
-                </button>
+                <WatchToggle
+                  isbn={work.isbn}
+                  title={work.title}
+                  watched={watchedIsbns.has(work.isbn)}
+                  variant="icon"
+                />
               </td>
             </tr>
           ))}
@@ -320,7 +333,7 @@ function priceAt(work: WorkSummary, channelCode: string): number | null {
 }
 
 /** One 作品 in 列表 view. */
-function ResultRow({ work }: { work: WorkSummary }) {
+function ResultRow({ work, watched }: { work: WorkSummary; watched: boolean }) {
   const pairs = work.channelPrices.slice(0, MAX_CHANNEL_PAIRS);
   const detailHref = `/works/${work.isbn}`;
 
@@ -381,12 +394,12 @@ function ResultRow({ work }: { work: WorkSummary }) {
           共 {work.channelCount} 個通路
         </p>
 
-        {/* 追蹤 becomes a real toggle with the watch-list work. */}
-        <button type="button" className={`btn btn-secondary ${styles.watch}`}>
-          <Plus size={16} strokeWidth={1.5} className={styles.watchIconWide} />
-          <Star size={16} strokeWidth={1.5} className={styles.watchIconNarrow} />
-          <span className={styles.watchLabel}>追蹤價格</span>
-        </button>
+        <WatchToggle
+          isbn={work.isbn}
+          title={work.title}
+          watched={watched}
+          className={styles.watch}
+        />
 
         <Link href={detailHref} className={`btn btn-primary blueprint ${styles.detail}`}>
           <span className={styles.detailWide}>看全部報價</span>

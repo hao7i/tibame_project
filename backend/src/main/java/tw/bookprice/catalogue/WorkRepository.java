@@ -53,6 +53,21 @@ public interface WorkRepository extends JpaRepository<Work, Long> {
             """)
     List<Work> search(@Param("pattern") String pattern);
 
+    /**
+     * The 作品 behind a set of 追蹤 rows, in one query.
+     *
+     * 追蹤清單 needs 最低價 for every row it draws; fetching them one at a time
+     * would be a query per tracked book on every page load.
+     */
+    @Query("""
+            select distinct w from Work w
+            left join fetch w.editions e
+            left join fetch e.offers o
+            left join fetch o.channel
+            where w.id in :ids
+            """)
+    List<Work> findAllWithOffersByIdIn(@Param("ids") java.util.Collection<Long> ids);
+
     /** Either 版本 ISBN addresses the 作品; the 紙本 one is the canonical form. */
     @Query("""
             select distinct w from Work w

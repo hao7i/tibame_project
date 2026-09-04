@@ -42,10 +42,12 @@ export async function sessionHeader(): Promise<Record<string, string>> {
  * browser spoken to it directly; `secure` is off because local development is
  * plain HTTP, and a cookie marked secure would simply never be stored.
  */
-export async function writeSession(setCookieHeader: string | null): Promise<boolean> {
+export async function writeSession(
+  setCookieHeader: string | null,
+): Promise<string | undefined> {
   const value = parseJsessionId(setCookieHeader);
   if (!value) {
-    return false;
+    return undefined;
   }
 
   const store = await cookies();
@@ -55,7 +57,10 @@ export async function writeSession(setCookieHeader: string | null): Promise<bool
     path: "/",
     secure: process.env.NODE_ENV === "production",
   });
-  return true;
+
+  // Handed back so the caller can use it within this same request, instead of
+  // reading back a cookie it has only just written.
+  return value;
 }
 
 export async function clearSession(): Promise<void> {

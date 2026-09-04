@@ -13,7 +13,7 @@ import styles from "./login.module.css";
  * Both are Server Actions, which means the form still submits with no client
  * JavaScript and the session never passes through the browser.
  */
-export function LoginForm({ hint }: { hint: string }) {
+export function LoginForm({ hint, pendingIsbn }: { hint: string; pendingIsbn?: string }) {
   const [mode, setMode] = useState<"signIn" | "register">("signIn");
 
   const [signInError, signInAction, signingIn] = useActionState<AuthResult, FormData>(
@@ -32,6 +32,9 @@ export function LoginForm({ hint }: { hint: string }) {
 
   return (
     <form className={styles.form} action={action}>
+      {/* Rides along so 登入 can finish the 追蹤 the reader started. */}
+      {pendingIsbn ? <input type="hidden" name="pendingIsbn" value={pendingIsbn} /> : null}
+
       <h3 className={styles.formTitle}>{isRegister ? "註冊新帳號" : "會員登入"}</h3>
       <p className={styles.hint}>{isRegister ? "密碼至少 8 個字元。" : hint}</p>
 

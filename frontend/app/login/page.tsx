@@ -23,6 +23,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   const params = await searchParams;
   const pending = params.book;
+  const firstValue = (value: string | string[] | undefined) =>
+    Array.isArray(value) ? value[0] : value;
 
   // The design gives this line two forms: the plain invitation, and the one
   // shown when the reader pressed 追蹤 first and was sent here.
@@ -46,7 +48,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </aside>
 
       <div className={styles.formColumn}>
-        <LoginForm hint={hint} />
+        <LoginForm hint={hint} pendingIsbn={firstValue(params.isbn)} />
       </div>
     </div>
   );

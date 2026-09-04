@@ -59,8 +59,11 @@ public class MemberService {
      * 電子郵件 is a case-insensitive identifier in practice, so it is stored and
      * looked up lower-cased. Without this, Alice@example.com and
      * alice@example.com would be two accounts that look identical on screen.
+     *
+     * Public because it is a rule about the identifier itself, not about this
+     * service: anything keying on 電子郵件 has to apply the same one.
      */
-    static String normalise(String email) {
+    public static String normalise(String email) {
         return (email == null) ? "" : email.trim().toLowerCase(Locale.ROOT);
     }
 }

@@ -35,10 +35,27 @@ export async function signIn(_previous: AuthResult, form: FormData): Promise<Aut
     return { error: "帳號或密碼不正確" };
   }
 
-  if (!(await writeSession(response.headers.get("set-cookie")))) {
+  const session = await writeSession(response.headers.get("set-cookie"));
+  if (!session) {
     // A 200 with no session would leave the reader looking signed in on this
     // page and anonymous on the next one.
     return { error: "登入失敗，請再試一次" };
+  }
+
+  // The 追蹤 detour: the reader pressed 追蹤 while signed out and was sent here.
+  // Add the book now and land them back on it, so the press they made before
+  // the interruption is the press that takes effect.
+  const pendingIsbn = String(form.get("pendingIsbn") ?? "").trim();
+  if (pendingIsbn) {
+    await fetch(`${BACKEND_URL}/api/me/watchlist/${encodeURIComponent(pendingIsbn)}`, {
+      method: "PUT",
+      // The session just issued, rather than the cookie written moments ago:
+      // one less thing that has to be true for the detour to work.
+      headers: { Cookie: `JSESSIONID=${session}` },
+      cache: "no-store",
+    }).catch(() => undefined);
+
+    redirect(`/works/${encodeURIComponent(pendingIsbn)}`);
   }
 
   redirect("/");

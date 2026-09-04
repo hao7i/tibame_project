@@ -3,6 +3,7 @@ import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { currentMember } from "@/lib/session";
+import { watchCount } from "@/lib/watchlist";
 import { SiteFooter } from "@/components/SiteFooter";
 
 /**
@@ -35,6 +36,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // Read once, here, so every route renders the 導覽列 in the state the reader
   // is actually in rather than each page deciding for itself.
   const member = await currentMember();
+  const tracked = member ? await watchCount() : 0;
 
   return (
     <html
@@ -42,7 +44,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${barlow.variable} ${barlowCondensed.variable}`}
     >
       <body>
-        <SiteHeader loggedIn={member !== null} />
+        <SiteHeader loggedIn={member !== null} watchCount={tracked} />
         <main>{children}</main>
         <SiteFooter />
       </body>

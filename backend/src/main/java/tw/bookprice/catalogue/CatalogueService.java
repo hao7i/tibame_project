@@ -375,6 +375,27 @@ public class CatalogueService {
         }
     }
 
+    /**
+     * 最低價 and the rest of the card for a set of 作品, keyed by 作品 id.
+     *
+     * 追蹤清單 is the caller: it holds ids, needs prices, and must not reach into
+     * the 書目 itself. No 載體 or 通路 filter applies — a 追蹤 row is about the
+     * 作品 as a whole, so its price is the cheapest 報價 anywhere.
+     */
+    public java.util.Map<Long, WorkSummary> summariesByWorkId(
+            java.util.Collection<Long> workIds) {
+        if (workIds.isEmpty()) {
+            return java.util.Map.of();
+        }
+
+        java.util.Map<Long, WorkSummary> byId = new LinkedHashMap<>();
+        for (Work work : workRepository.findAllWithOffersByIdIn(workIds)) {
+            toSummary(work, null, Set.of())
+                    .ifPresent(summary -> byId.put(work.getId(), summary));
+        }
+        return byId;
+    }
+
     /** The six 通路, in the order every screen presents them. */
     public List<ChannelView> listChannels() {
         return channelRepository.findAllByOrderByDisplayOrderAsc().stream()
