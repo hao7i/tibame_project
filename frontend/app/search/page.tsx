@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { BookCover } from "@/components/BookCover";
 import { SearchForm } from "@/components/SearchForm";
 import { listFacets, searchWorks, type Facets, type WorkSummary } from "@/lib/api";
 import { FacetRail } from "./FacetRail";
@@ -204,11 +205,9 @@ function ResultCard({
 
   return (
     <div className={`card ${styles.card}`}>
-      {/* Neither the 卡 nor the 封面 carries 註冊記號 now. .card frames the 卡;
-          .blueprint still frames the 封面 and is the only source of its border. */}
-      <div className={`blueprint duotone ${styles.cardCover}`}>
-        <span className={styles.coverLabel}>封面</span>
-      </div>
+      {/* .card frames the 卡; .blueprint still frames the 封面 and is the only
+          source of its border. Neither carries 註冊記號. */}
+      <BookCover src={work.coverImageUrl} title={work.title} className={styles.cardCover} />
 
       <span className="card-kicker">{work.category}</span>
       <Link href={detailHref} className={`card-title ${styles.cardTitle}`}>
@@ -402,9 +401,7 @@ function ResultRow({
 
   return (
     <li className={styles.row}>
-      <div className={`blueprint duotone ${styles.cover}`}>
-        <span className={styles.coverLabel}>封面</span>
-      </div>
+      <BookCover src={work.coverImageUrl} title={work.title} className={styles.cover} />
 
       <div className={styles.body}>
         <h4 className={styles.title}>

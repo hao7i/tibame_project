@@ -47,6 +47,18 @@ public class Edition {
     @Column(name = "list_price", nullable = false)
     private int listPrice;
 
+    /**
+     * 書封 URL as one 通路 publishes it, hotlinked rather than copied — so it is
+     * their asset on their CDN, and null whenever we have not fetched a page
+     * that carries one. The 佔位框 covers the null, which is every 版本 until a
+     * 取價 has actually run.
+     *
+     * Nullable, and it has to stay that way: a NOT NULL column cannot be added
+     * to a table that already holds rows.
+     */
+    @Column(name = "cover_image_url", length = 500)
+    private String coverImageUrl;
+
     @OneToMany(mappedBy = "edition", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Offer> offers = new LinkedHashSet<>();
 
@@ -93,6 +105,21 @@ public class Edition {
 
     public int getListPrice() {
         return listPrice;
+    }
+
+    public String getCoverImageUrl() {
+        return coverImageUrl;
+    }
+
+    /**
+     * Overwritten on every 取價 that carries a 書封 rather than kept from the
+     * first one seen. A URL that has rotted is then replaced by whichever 通路
+     * still serves one, instead of the 版本 being stuck with a dead image for good.
+     */
+    public void recordCoverImage(String url) {
+        if (url != null && !url.isBlank()) {
+            this.coverImageUrl = url.trim();
+        }
     }
 
     public Set<Offer> getOffers() {

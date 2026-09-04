@@ -10,6 +10,8 @@ import java.util.List;
  * @param listPrice      定價 of the 紙本 版本, shown as the 定價 tag
  * @param channelCount   how many 通路 hold a 報價, shown as n 個通路有貨
  * @param bestPrice      cheapest 報價 across every 版本, absent if there are none
+ * @param coverImageUrl  書封 hotlinked from whichever 通路 published one, or null
+ *                       before any 取價 has run — the 佔位框 stands in for it
  * @param channelPrices  every 通路 報價, in fixed 通路 order; the caller decides how
  *                       many to show, and the table view needs all of them
  */
@@ -23,6 +25,7 @@ public record WorkSummary(
         String category,
         int listPrice,
         int channelCount,
+        String coverImageUrl,
         BestPrice bestPrice,
         List<ChannelPrice> channelPrices) {
 }

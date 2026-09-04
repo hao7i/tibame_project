@@ -62,6 +62,8 @@ export type WorkDetail = {
   blurb?: string;
   listPrice: number;
   channelCount: number;
+  /** 書封 hotlinked from whichever 通路 published one; absent until 取價 has run. */
+  coverImageUrl?: string;
   fetchedAt?: string;
   /** Absent when the 作品 has no 報價 at all. */
   bestPrice?: BestPrice;
@@ -78,6 +80,8 @@ export type WorkSummary = {
   category: string;
   listPrice: number;
   channelCount: number;
+  /** 書封 hotlinked from whichever 通路 published one; absent until 取價 has run. */
+  coverImageUrl?: string;
   bestPrice?: BestPrice;
   channelPrices: ChannelPrice[];
 };

@@ -135,6 +135,10 @@ public class PriceRefreshService {
                         }
                         offer.recordFetch(fetched.get().price(), fetched.get().stockStatus(),
                                 startedAt, fetched.get().productUrl());
+                        // 書封 belongs to the 版本, not to this one 通路 row: the
+                        // screens show one cover per book, whichever shop it
+                        // came from.
+                        edition.recordCoverImage(fetched.get().coverImageUrl());
                         updated++;
                     } catch (RuntimeException cause) {
                         // Marked on the 報價 itself so 單書比價 can show this one

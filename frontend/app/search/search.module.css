@@ -204,11 +204,6 @@
   background: var(--color-surface);
 }
 
-.coverLabel {
-  font-size: 10px;
-  color: color-mix(in srgb, var(--color-text) 55%, transparent);
-}
-
 .body {
   grid-area: body;
   min-width: 0;

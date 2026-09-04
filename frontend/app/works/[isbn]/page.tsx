@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { BookCover } from "@/components/BookCover";
 import { fetchWorkDetail, type OfferView, type WorkDetail } from "@/lib/api";
 import { channelSwatch } from "@/lib/channels";
 import { currentMember } from "@/lib/session";
@@ -48,9 +49,7 @@ export default async function WorkPage({ params, searchParams }: WorkPageProps) 
 
       <div className={styles.layout}>
         {/* .blueprint stays: it is the only source of the 封面 框線. No 註冊記號. */}
-        <div className={`blueprint duotone ${styles.cover}`}>
-          <span className={styles.coverLabel}>封面</span>
-        </div>
+        <BookCover src={work.coverImageUrl} title={work.title} className={styles.cover} />
 
         <div className={styles.main}>
           <p className={styles.kicker}>{work.category}</p>

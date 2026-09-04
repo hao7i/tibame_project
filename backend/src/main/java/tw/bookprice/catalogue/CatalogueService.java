@@ -329,6 +329,7 @@ public class CatalogueService {
                 work.getBlurb(),
                 listPrice,
                 (int) channelCount,
+                coverOf(work),
                 offers.stream().map(Offer::getFetchedAt).max(Comparator.naturalOrder()).orElse(null),
                 (cheapest == null) ? null : toBestPrice(cheapest, listPrice),
                 rows);
@@ -464,6 +465,7 @@ public class CatalogueService {
                 work.getCategory(),
                 listPrice,
                 (int) channelCount,
+                coverOf(work),
                 bestPrice,
                 channelPrices));
     }
@@ -494,6 +496,25 @@ public class CatalogueService {
      * It stays the 作品-level number whatever 載體 is filtered to; each 折扣 is
      * measured against the 定價 of its own 版本 instead.
      */
+    /**
+     * 書封 for the 作品: the first 版本 that has one, 紙本 preferred.
+     *
+     * Null until a 取價 has actually fetched a page carrying a cover, which is
+     * why every screen still needs the 佔位框 behind this.
+     */
+    private static String coverOf(Work work) {
+        return work.getEditions().stream()
+                .filter(edition -> edition.getFormat() == Format.PAPER)
+                .map(Edition::getCoverImageUrl)
+                .filter(url -> url != null && !url.isBlank())
+                .findFirst()
+                .or(() -> work.getEditions().stream()
+                        .map(Edition::getCoverImageUrl)
+                        .filter(url -> url != null && !url.isBlank())
+                        .findFirst())
+                .orElse(null);
+    }
+
     private static int listPriceOf(Work work) {
         return work.getEditions().stream()
                 .filter(edition -> edition.getFormat() == Format.PAPER)

@@ -34,7 +34,8 @@ public final class TcsbParsing {
             }
 
             return Optional.of(new FetchedPrice(
-                    price, JsonLdOffers.availabilityOf(block), productUrl));
+                    price, JsonLdOffers.availabilityOf(block), productUrl,
+                    JsonLdOffers.coverOf(block, html)));
         }
         return Optional.empty();
     }

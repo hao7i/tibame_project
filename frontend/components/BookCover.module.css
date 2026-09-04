@@ -1,0 +1,14 @@
+/* Fits whatever box the caller sized, without cropping: a 書封 that has been
+   cut off is worse than one that leaves a margin. */
+.image {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.label {
+  font-size: 10px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}

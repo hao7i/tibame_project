@@ -99,4 +99,76 @@ class JsonLdParsingTest {
         assertThat(tw.bookprice.pricing.provider.TaazeParsing.readNewCopy(
                 ATOMIC_ISBN, "https://example.invalid/", noOffer)).isEmpty();
     }
+
+    /*
+     * 書封 extraction, written against the three shapes the five live 通路
+     * actually publish. The fixtures above carry no cover, so these use the
+     * markup observed on the real pages instead of widening the fixtures.
+     */
+
+    @Test
+    @DisplayName("書封：JSON-LD 陣列形式取第一張（金石堂與墊腳石的寫法）")
+    void readsCoverFromJsonLdArray() {
+        String html = """
+                <script type="application/ld+json">
+                {"@type":"Product","sku":"9789861755267",
+                 "image":["https://cdn.example/large.jpg","https://cdn.example/small.jpg"]}
+                </script>
+                """;
+
+        var block = JsonLdOffers.blocks(html).getFirst();
+        assertThat(JsonLdOffers.imageOf(block)).isEqualTo("https://cdn.example/large.jpg");
+    }
+
+    @Test
+    @DisplayName("書封：JSON-LD 字串形式（三民的寫法）")
+    void readsCoverFromJsonLdString() {
+        String html = """
+                <script type="application/ld+json">
+                {"@type":"Product","image":"https://cdn.example/cover.jpg"}
+                </script>
+                """;
+
+        var block = JsonLdOffers.blocks(html).getFirst();
+        assertThat(JsonLdOffers.imageOf(block)).isEqualTo("https://cdn.example/cover.jpg");
+    }
+
+    @Test
+    @DisplayName("書封：JSON-LD 沒有時退回 og:image（五南與讀冊的寫法）")
+    void fallsBackToOgImageWhenJsonLdCarriesNoCover() {
+        String html = """
+                <meta property="og:image" content="https://www.example/B_9789861755267.jpg">
+                <script type="application/ld+json">
+                {"@type":"Product","sku":"9789861755267"}
+                </script>
+                """;
+
+        var block = JsonLdOffers.blocks(html).getFirst();
+        assertThat(JsonLdOffers.imageOf(block)).isNull();
+        assertThat(JsonLdOffers.coverOf(block, html))
+                .isEqualTo("https://www.example/B_9789861755267.jpg");
+    }
+
+    @Test
+    @DisplayName("書封：屬性順序相反的 og:image 也要讀得到")
+    void readsOgImageWrittenTheOtherWayRound() {
+        String html = """
+                <meta content="https://www.example/cover.jpg" property="og:image"/>
+                """;
+
+        assertThat(JsonLdOffers.ogImage(html)).isEqualTo("https://www.example/cover.jpg");
+    }
+
+    @Test
+    @DisplayName("書封：整頁都沒有時回傳 null，讓佔位框接手")
+    void reportsNoCoverWhenThePageCarriesNone() {
+        String html = """
+                <script type="application/ld+json">
+                {"@type":"Product","sku":"9789861755267"}
+                </script>
+                """;
+
+        var block = JsonLdOffers.blocks(html).getFirst();
+        assertThat(JsonLdOffers.coverOf(block, html)).isNull();
+    }
 }

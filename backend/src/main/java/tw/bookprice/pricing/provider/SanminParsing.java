@@ -31,7 +31,8 @@ public final class SanminParsing {
             }
 
             return Optional.of(new FetchedPrice(
-                    price, JsonLdOffers.availabilityOf(block), productUrl));
+                    price, JsonLdOffers.availabilityOf(block), productUrl,
+                    JsonLdOffers.coverOf(block, html)));
         }
         return Optional.empty();
     }

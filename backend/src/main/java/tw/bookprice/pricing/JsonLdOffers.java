@@ -24,6 +24,16 @@ public final class JsonLdOffers {
             "<script[^>]*application/ld[+]json[^>]*>(.*?)</script>",
             Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
 
+    /** property before content, which is what all five 通路 emit today. */
+    private static final Pattern OG_IMAGE = Pattern.compile(
+            "<meta[^>]*property=[\"']og:image[\"'][^>]*content=[\"']([^\"']+)[\"']",
+            Pattern.CASE_INSENSITIVE);
+
+    /** The same tag written the other way round, which is equally valid HTML. */
+    private static final Pattern OG_IMAGE_REVERSED = Pattern.compile(
+            "<meta[^>]*content=[\"']([^\"']+)[\"'][^>]*property=[\"']og:image[\"']",
+            Pattern.CASE_INSENSITIVE);
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonLdOffers() {
@@ -71,6 +81,61 @@ public final class JsonLdOffers {
             if (value != null && !value.asText().isBlank()) {
                 return value.asText().trim();
             }
+        }
+        return null;
+    }
+
+    /**
+     * 書封 URL declared by the block, or null.
+     *
+     * schema.org allows either a single string or an array of them; 金石堂 and
+     * 墊腳石 use the array form, 三民 the string. The first entry is taken —
+     * where a shop lists several, they are sizes of the same cover.
+     */
+    public static String imageOf(JsonNode node) {
+        JsonNode value = node.get("image");
+        if (value == null) {
+            return null;
+        }
+        if (value.isArray()) {
+            value = value.isEmpty() ? null : value.get(0);
+        }
+        if (value == null || !value.isString() || value.asString().isBlank()) {
+            return null;
+        }
+        return value.asString().trim();
+    }
+
+    /**
+     * 書封 for a product page: whatever the matched block declares, else the
+     * page-level og:image.
+     *
+     * The fallback is what makes one call work for all five 通路 — 金石堂, 三民 and
+     * 墊腳石 put it in the JSON-LD, 五南 and 讀冊生活 only in the meta tag — instead
+     * of each parser knowing which kind of shop it is reading.
+     */
+    public static String coverOf(JsonNode node, String html) {
+        String declared = imageOf(node);
+        return declared != null ? declared : ogImage(html);
+    }
+
+    /**
+     * 書封 from the og:image meta tag, for the 通路 whose JSON-LD carries none.
+     *
+     * 五南 and 讀冊生活 publish a cover this way and only this way. Both attribute
+     * orders appear in the wild, so property and content are matched in either
+     * position rather than assuming one layout.
+     */
+    public static String ogImage(String html) {
+        Matcher matcher = OG_IMAGE.matcher(html);
+        if (matcher.find()) {
+            String url = matcher.group(1).trim();
+            return url.isBlank() ? null : url;
+        }
+        matcher = OG_IMAGE_REVERSED.matcher(html);
+        if (matcher.find()) {
+            String url = matcher.group(1).trim();
+            return url.isBlank() ? null : url;
         }
         return null;
     }

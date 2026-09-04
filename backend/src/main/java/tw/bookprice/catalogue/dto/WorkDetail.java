@@ -22,6 +22,7 @@ public record WorkDetail(
         String blurb,
         int listPrice,
         int channelCount,
+        String coverImageUrl,
         Instant fetchedAt,
         BestPrice bestPrice,
         List<OfferView> offers) {

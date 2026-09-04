@@ -18,7 +18,6 @@ design tokens 全在裡面）。`design/Book Price Portal.dc.html` 是設計參�
 - **寄送 email**：目標價達成只在畫面上顯示「已達目標價」狀態，不接任何 SMTP 或寄信服務。
 - **作品的自動合併**：不去判斷哪些 ISBN 屬於同一作品，關係直接寫在 seed 資料裡。
 - **768px 平板中斷點**：設計稿未定義，只做 1180px 桌機與 390px 手機兩套。
-- **真實書封圖片**：一律用設計稿的 `.blueprint.duotone` 佔位框。
 - **價格走勢**：設計稿在單書比價頁畫了「近 90 天價格走勢」sparkline 卡，本專案不做——
   不存價格歷史、不建 PricePoint 之類的資料表、右側只有兩張卡。設計稿與原型的 `trend`
   陣列仍留著，但**不要據此把它加回來**。
@@ -153,6 +152,11 @@ Web API Controller ─┘
   是後端 seed 資料的來源，照抄數值即可。
 - design tokens（`design/_ds/industry-*/styles.css` 的 `:root` 變數）**移植成專案自己的 CSS 變數**，
   元件中一律引用變數，不得硬寫 hex 值。
+- **書封直連通路 CDN，不自己快取**：取價時順便從商品頁讀 `image`（JSON-LD）或 `og:image`，
+  存成 `Edition.coverImageUrl`，前端用 `<img>` 直接連對方的 CDN。**不要改用 `next/image`**——
+  它的 optimizer 會把別人的圖抓一份快取在我們自己的伺服器上，那正是這裡刻意不做的事。
+  沒有封面時（尚未取價、或該頁沒有圖）退回 `.blueprint.duotone` 佔位框；圖片 404 時
+  `BookCover` 會在瀏覽器端退回同一個佔位框。
 - **四個 11×11 註冊記號（角落的 `+`）全站不使用**——`BlueprintCorners` 元件已刪除，不要重建。
   這是刻意偏離 `design/README.md` 的決定（原設計在卡片、佔位框與主要按鈕上都畫了這些記號），
   依使用者要求移除，**優先於上面「兩者衝突時以 README 為準」那條**。

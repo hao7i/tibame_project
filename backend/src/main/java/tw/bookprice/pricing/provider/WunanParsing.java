@@ -4,11 +4,12 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import tw.bookprice.pricing.FetchedPrice;
+import tw.bookprice.pricing.JsonLdOffers;
 
 /**
  * Reading a 五南文化廣場 商品頁.
  *
- * This 通路 publishes no structured data at all — no JSON-LD, no og:price — so
+ * This 通路 publishes no structured data for the price — no JSON-LD, no og:price — so
  * unlike the other three live 通路 the figures have to come out of the markup.
  * Two consequences shape everything below.
  *
@@ -74,7 +75,9 @@ public final class WunanParsing {
             return Optional.empty();
         }
 
-        return Optional.of(new FetchedPrice(price, "有貨", productUrl));
+        // 五南 publishes no JSON-LD, so the meta tag is the only 書封 here.
+        return Optional.of(new FetchedPrice(price, "有貨", productUrl,
+                JsonLdOffers.ogImage(html)));
     }
 
     private static String titleOf(String html) {
