@@ -7,6 +7,7 @@ import { currentMember } from "@/lib/session";
 import { watchCount } from "@/lib/watchlist";
 import { SiteFooter } from "@/components/SiteFooter";
 import { AuthNotice } from "@/components/AuthNotice";
+import { LookupProvider } from "@/components/LookupNotice";
 
 /**
  * next/font downloads these at build time and serves them from our own
@@ -46,9 +47,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${barlow.variable} ${barlowCondensed.variable}`}
     >
       <body>
-        <SiteHeader loggedIn={member !== null} watchCount={tracked} />
-        <main>{children}</main>
-        <SiteFooter />
+        {/* Wraps the whole tree because 找書 outlives the screen that starts it:
+            it runs for over a minute, and the reader is free to navigate away
+            while it does. The result finds them wherever they went. */}
+        <LookupProvider>
+          <SiteHeader loggedIn={member !== null} watchCount={tracked} />
+          <main>{children}</main>
+          <SiteFooter />
+        </LookupProvider>
 
         {/* Here rather than on a page: 註冊 / 登入 / 登出 all succeed by
             redirecting, so the confirmation has to be able to appear wherever

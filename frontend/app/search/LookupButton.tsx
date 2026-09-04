@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { lookupByTerm, type LookupOutcome } from "@/lib/lookup";
+import { useLookup } from "@/components/LookupNotice";
 
 /**
  * 到各通路找找看 — the way a book the 書目 does not hold gets into it.
@@ -13,55 +11,34 @@ import { lookupByTerm, type LookupOutcome } from "@/lib/lookup";
  * 搜尋 plus a 商品頁 per candidate, then all five 通路 a 取價 — far too much to
  * spend on a typo.
  *
+ * Only the press lives here. The request and its result belong to LookupProvider
+ * in the layout, because the run outlasts this screen: the reader can go to 登入
+ * or anywhere else while it finishes, and the answer still has to reach them.
+ *
  * The term is either a 書名 or an ISBN; the server decides which by checking it,
  * so this component does not need to know.
- *
- * It takes the best part of a minute, so the pending state is not decoration:
- * without it the page would look broken.
  */
 export function LookupButton({ term }: { term: string }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [outcome, setOutcome] = useState<LookupOutcome | null>(null);
-
-  const run = () => {
-    setOutcome(null);
-    startTransition(async () => {
-      const result = await lookupByTerm(term);
-      setOutcome(result);
-      if (result.status === "imported") {
-        router.refresh();
-      }
-    });
-  };
+  const lookup = useLookup();
+  if (!lookup) {
+    return null;
+  }
 
   return (
     <div>
-      <button type="button" className="btn btn-primary" onClick={run} disabled={pending}>
-        {pending ? "查詢各通路中…" : "到各通路找找看"}
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={() => lookup.start(term)}
+        disabled={lookup.running}
+      >
+        {lookup.running ? "查詢各通路中…" : "到各通路找找看"}
       </button>
 
-      {pending ? (
+      {lookup.running ? (
         <p className="card-meta" role="status">
-          正在向五家通路查詢並取價，可能需要一分鐘。
-        </p>
-      ) : null}
-
-      {outcome?.status === "imported" ? (
-        <p className="card-meta" role="status">
-          收錄了 {outcome.count} 本，正在重新整理結果。
-        </p>
-      ) : null}
-
-      {outcome?.status === "none" ? (
-        <p className="card-meta" role="status">
-          各通路也沒有這個書名的書。
-        </p>
-      ) : null}
-
-      {outcome?.status === "error" ? (
-        <p className="card-meta" role="alert">
-          {outcome.message}
+          正在向五家通路查詢並取價，大約需要一分鐘。這段時間可以繼續瀏覽，
+          找完會通知你。
         </p>
       ) : null}
     </div>
