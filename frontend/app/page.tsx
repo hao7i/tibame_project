@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Blueprint } from "@/components/Blueprint";
 import { SearchForm } from "@/components/SearchForm";
 import { listChannels } from "@/lib/api";
 import { channelTintStyle } from "@/lib/channels";
@@ -12,12 +11,6 @@ const HOT_SEARCHES = [
   "被討厭的勇氣",
   "設計的設計",
   "如何閱讀一本書",
-];
-
-const HOW_IT_WORKS = [
-  { step: "01", label: "輸入書名或 ISBN" },
-  { step: "02", label: "比較售價與版本" },
-  { step: "03", label: "設定目標價追蹤" },
 ];
 
 /**
@@ -68,18 +61,6 @@ export default async function Home() {
             </div>
           ))}
         </section>
-
-        <Blueprint className={`card ${styles.method}`}>
-          <p className="card-kicker">運作方式</p>
-          <ol className={styles.steps}>
-            {HOW_IT_WORKS.map(({ step, label }) => (
-              <li key={step} className={styles.step}>
-                <span className={styles.stepNumber}>{step}</span>
-                <span>{label}</span>
-              </li>
-            ))}
-          </ol>
-        </Blueprint>
       </div>
     </>
   );

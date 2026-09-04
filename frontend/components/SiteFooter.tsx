@@ -1,13 +1,12 @@
-import Link from "next/link";
 import styles from "./SiteFooter.module.css";
 
-const FOOTER_LINKS = [
-  { href: "/channels", label: "收錄通路" },
-  { href: "/feedback", label: "意見回饋" },
-  { href: "/sources", label: "資料來源說明" },
-];
-
-/** Desktop only, per the design: hidden at the mobile rendition. */
+/**
+ * Desktop only, per the design: hidden at the mobile rendition.
+ *
+ * The 收錄通路 / 意見回饋 / 資料來源說明 links the design draws here were removed
+ * on request. 收錄通路 is still reachable from the 導覽列; the other two routes
+ * remain but are no longer linked from any page.
+ */
 export function SiteFooter() {
   return (
     <footer className={styles.footer}>
@@ -15,13 +14,6 @@ export function SiteFooter() {
         <span className={styles.note}>
           BOOKPRICE.TW · 價格每 6 小時更新一次
         </span>
-        <nav className={styles.links}>
-          {FOOTER_LINKS.map(({ href, label }) => (
-            <Link key={href} href={href} className={styles.link}>
-              {label}
-            </Link>
-          ))}
-        </nav>
       </div>
     </footer>
   );

@@ -11,7 +11,6 @@ const NAV_LINKS = [
   { href: "/", label: "首頁" },
   { href: "/advanced", label: "進階搜尋" },
   { href: "/watch", label: "追蹤清單" },
-  { href: "/channels", label: "通路一覽" },
 ];
 
 type SiteHeaderProps = {
