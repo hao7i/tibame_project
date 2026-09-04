@@ -15,6 +15,20 @@ import { clearSession, sessionHeader, writeSession } from "@/lib/session";
 export type AuthResult = { error: string } | undefined;
 
 export async function signIn(_previous: AuthResult, form: FormData): Promise<AuthResult> {
+  return authenticate(form, "signedIn");
+}
+
+/**
+ * The shared 登入 path.
+ *
+ * `notice` rides along on the redirect because the popup cannot live on /login:
+ * a successful 登入 leaves that page immediately, so the destination is the only
+ * place that can still say what just happened.
+ */
+async function authenticate(
+  form: FormData,
+  notice: "signedIn" | "registered",
+): Promise<AuthResult> {
   const email = String(form.get("email") ?? "");
   const password = String(form.get("password") ?? "");
 
@@ -55,10 +69,10 @@ export async function signIn(_previous: AuthResult, form: FormData): Promise<Aut
       cache: "no-store",
     }).catch(() => undefined);
 
-    redirect(`/works/${encodeURIComponent(pendingIsbn)}`);
+    redirect(`/works/${encodeURIComponent(pendingIsbn)}?notice=${notice}`);
   }
 
-  redirect("/");
+  redirect(`/?notice=${notice}`);
 }
 
 export async function register(_previous: AuthResult, form: FormData): Promise<AuthResult> {
@@ -86,7 +100,7 @@ export async function register(_previous: AuthResult, form: FormData): Promise<A
 
   // 註冊 signs the reader straight in: making them retype what they just chose
   // would be a step with no purpose.
-  return signIn(undefined, form);
+  return authenticate(form, "registered");
 }
 
 export async function signOut(): Promise<void> {
@@ -99,5 +113,5 @@ export async function signOut(): Promise<void> {
   // Cleared even if the backend call failed: the reader asked to be signed out,
   // and the session this server holds is what keeps them signed in.
   await clearSession();
-  redirect("/");
+  redirect("/?notice=signedOut");
 }

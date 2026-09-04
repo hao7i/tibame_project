@@ -1,0 +1,9 @@
+/* .dialog sets display:flex, which beats the UA rule that keeps a closed
+   <dialog> hidden, so it has to be restated here. */
+.notice:not([open]) {
+  display: none;
+}
+
+.notice::backdrop {
+  background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
+}

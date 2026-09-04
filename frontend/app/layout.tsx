@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { currentMember } from "@/lib/session";
 import { watchCount } from "@/lib/watchlist";
 import { SiteFooter } from "@/components/SiteFooter";
+import { AuthNotice } from "@/components/AuthNotice";
 
 /**
  * next/font downloads these at build time and serves them from our own
@@ -47,6 +49,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <SiteHeader loggedIn={member !== null} watchCount={tracked} />
         <main>{children}</main>
         <SiteFooter />
+
+        {/* Here rather than on a page: 註冊 / 登入 / 登出 all succeed by
+            redirecting, so the confirmation has to be able to appear wherever
+            they land. Suspense because it reads the query string. */}
+        <Suspense fallback={null}>
+          <AuthNotice />
+        </Suspense>
       </body>
     </html>
   );
