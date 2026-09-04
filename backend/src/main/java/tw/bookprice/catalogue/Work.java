@@ -48,6 +48,20 @@ public class Work {
     private String blurb;
 
     /**
+     * 譯者 and 系列 exist because 進階搜尋 offers them as 搜尋欄位.
+     *
+     * They are nullable and the seeded 書目 leaves them empty: the prototype
+     * carries no such data and this build does not invent bibliographic facts.
+     * A null simply never matches a 關鍵字, so searching either field honestly
+     * returns nothing until 書目維護 fills them in.
+     */
+    @Column(length = 200)
+    private String translator;
+
+    @Column(length = 200)
+    private String series;
+
+    /**
      * Ordered by ISBN so iteration is stable. getPrimaryIsbn() picks the first
      * 紙本 版本 it sees, and a 作品 with both a 平裝 and a 精裝 版本 would otherwise
      * be addressed by a different ISBN from one restart to the next, breaking
@@ -120,6 +134,14 @@ public class Work {
 
     public String getBlurb() {
         return blurb;
+    }
+
+    public String getTranslator() {
+        return translator;
+    }
+
+    public String getSeries() {
+        return series;
     }
 
     public Set<Edition> getEditions() {

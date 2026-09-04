@@ -126,8 +126,19 @@ export type WorkSearchParams = {
   channel?: string[];
   /** 分類 names; OR within the group */
   category?: string[];
+  /** 價格下限, applied to the computed 最低價 */
+  minPrice?: string;
   /** 價格上限, applied to the computed 最低價 */
   maxPrice?: string;
+  /** 出版年: "2025" for that year, "2024-" for 2024 或更早 */
+  year?: string;
+  /** 進階搜尋 第一列 搜尋欄位 and 關鍵字 */
+  field1?: string;
+  term1?: string;
+  /** How 第二列 joins 第一列: AND / OR / NOT */
+  op?: string;
+  field2?: string;
+  term2?: string;
   /** 1-based; the backend clamps out-of-range values */
   page?: string;
 };
@@ -144,8 +155,12 @@ export function searchWorks(
   if (search.format) {
     params.set("format", search.format);
   }
-  if (search.maxPrice) {
-    params.set("maxPrice", search.maxPrice);
+  for (const key of
+    ["minPrice", "maxPrice", "year", "field1", "term1", "op", "field2", "term2"] as const) {
+    const value = search[key];
+    if (value) {
+      params.set(key, value);
+    }
   }
   if (search.page) {
     params.set("page", search.page);

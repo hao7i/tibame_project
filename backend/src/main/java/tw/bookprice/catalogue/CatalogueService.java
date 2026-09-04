@@ -16,6 +16,7 @@ import tw.bookprice.catalogue.dto.BestPrice;
 import tw.bookprice.catalogue.dto.ChannelPrice;
 import tw.bookprice.catalogue.dto.ChannelView;
 import tw.bookprice.catalogue.dto.FacetsView;
+import tw.bookprice.catalogue.dto.FieldQuery;
 import tw.bookprice.catalogue.dto.OfferView;
 import tw.bookprice.catalogue.dto.SearchResponse;
 import tw.bookprice.catalogue.dto.WorkDetail;
@@ -66,6 +67,8 @@ public class CatalogueService {
                 : workRepository.findAllWithOffers())
                 .stream()
                 .filter(work -> categories.isEmpty() || categories.contains(work.getCategory()))
+                .filter(work -> matchesYear(work, query.year()))
+                .filter(work -> matchesFields(work, query.fields()))
                 .toList();
 
         // The 作品 is kept alongside its summary so 取價時間 can be derived from
@@ -78,10 +81,10 @@ public class CatalogueService {
                 .map(work -> toSummary(work, loadFilter, channels)
                         .map(summary -> new Matched(work, summary)))
                 .flatMap(Optional::stream)
-                // The ceiling applies to the computed 最低價, so it moves with the
+                // The 價格區間 applies to the computed 最低價, so it moves with the
                 // 通路 selection rather than measuring against a hidden price.
-                .filter(entry -> query.maxPrice() == null
-                        || entry.summary().bestPrice().price() <= query.maxPrice())
+                .filter(entry -> withinPrice(entry.summary().bestPrice().price(),
+                        query.minPrice(), query.maxPrice()))
                 .toList();
 
         int totalPages = (int) Math.ceil(matched.size() / (double) PAGE_SIZE);
@@ -178,6 +181,114 @@ public class CatalogueService {
                 .filter(value -> value != null && !value.isBlank())
                 .map(String::trim)
                 .collect(Collectors.toUnmodifiableSet());
+    }
+
+    private static boolean withinPrice(int price, Integer min, Integer max) {
+        return (min == null || price >= min) && (max == null || price <= max);
+    }
+
+    /**
+     * 出版年: "2025" is that year exactly, "2024-" is 2024 或更早, blank is 不限.
+     *
+     * The 或更早 option is written as a trailing dash rather than as its own
+     * parameter so that one control on the form stays one value in the URL.
+     */
+    private static boolean matchesYear(Work work, String year) {
+        if (year == null || year.isBlank()) {
+            return true;
+        }
+
+        String value = year.trim();
+        boolean orEarlier = value.endsWith("-");
+        String digits = orEarlier ? value.substring(0, value.length() - 1) : value;
+
+        int bound;
+        try {
+            bound = Integer.parseInt(digits);
+        } catch (NumberFormatException cause) {
+            throw new IllegalArgumentException("不支援的出版年: " + year, cause);
+        }
+
+        return orEarlier
+                ? work.getPublicationYear() <= bound
+                : work.getPublicationYear() == bound;
+    }
+
+    /**
+     * The 進階搜尋 欄位條件.
+     *
+     * A row with a blank 關鍵字 is not a condition, so it drops out and the 布林
+     * operator with it: joining one condition to nothing has no meaning, and
+     * treating the blank row as "matches everything" would silently turn NOT
+     * into "nothing matches".
+     */
+    private static boolean matchesFields(Work work, FieldQuery fields) {
+        if (fields == null || fields.isEmpty()) {
+            return true;
+        }
+
+        boolean hasFirst = fields.term1() != null && !fields.term1().isBlank();
+        boolean hasSecond = fields.term2() != null && !fields.term2().isBlank();
+
+        if (hasFirst && !hasSecond) {
+            return matchesCondition(work, fields.field1(), fields.term1());
+        }
+        if (!hasFirst) {
+            return matchesCondition(work, fields.field2(), fields.term2());
+        }
+
+        boolean first = matchesCondition(work, fields.field1(), fields.term1());
+        boolean second = matchesCondition(work, fields.field2(), fields.term2());
+
+        return switch (parseBooleanOp(fields.op())) {
+            case OR -> first || second;
+            case NOT -> first && !second;
+            case AND -> first && second;
+        };
+    }
+
+    private enum BooleanOp { AND, OR, NOT }
+
+    /** Blank means AND, the operator the first row implies. */
+    private static BooleanOp parseBooleanOp(String op) {
+        if (op == null || op.isBlank()) {
+            return BooleanOp.AND;
+        }
+        try {
+            return BooleanOp.valueOf(op.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException cause) {
+            throw new IllegalArgumentException("不支援的布林運算: " + op, cause);
+        }
+    }
+
+    /**
+     * One 欄位條件, matched as a case-insensitive substring the way 簡易搜尋 does.
+     *
+     * An unknown 搜尋欄位 is rejected rather than quietly treated as 書名: a typo in
+     * the parameter would otherwise return confident results for a field the
+     * reader never asked about.
+     */
+    private static boolean matchesCondition(Work work, String field, String term) {
+        String needle = term.trim().toLowerCase(Locale.ROOT);
+        String key = (field == null || field.isBlank())
+                ? "title"
+                : field.trim().toLowerCase(Locale.ROOT);
+
+        return switch (key) {
+            case "title" -> containsIgnoringCase(work.getTitle(), needle);
+            case "author" -> containsIgnoringCase(work.getAuthor(), needle);
+            case "publisher" -> containsIgnoringCase(work.getPublisher(), needle);
+            case "translator" -> containsIgnoringCase(work.getTranslator(), needle);
+            case "series" -> containsIgnoringCase(work.getSeries(), needle);
+            case "isbn" -> work.getEditions().stream()
+                    .anyMatch(edition -> containsIgnoringCase(edition.getIsbn(), needle));
+            default -> throw new IllegalArgumentException("不支援的搜尋欄位: " + field);
+        };
+    }
+
+    /** 譯者 and 系列 are unset in the seeded 書目, and a null matches nothing. */
+    private static boolean containsIgnoringCase(String value, String lowerCaseNeedle) {
+        return value != null && value.toLowerCase(Locale.ROOT).contains(lowerCaseNeedle);
     }
 
     /**

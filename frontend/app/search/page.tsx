@@ -26,13 +26,35 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const page = firstValue(params.page);
   const view = parseView(firstValue(params.view));
 
+  // 進階搜尋 conditions travel as their own parameters. This screen does not
+  // render controls for them — the 進階搜尋 form owns that — so it passes them
+  // straight through and only says, in the heading, that they are in force.
+  const advanced = {
+    minPrice: firstValue(params.minPrice),
+    year: firstValue(params.year),
+    field1: firstValue(params.field1),
+    term1: firstValue(params.term1),
+    op: firstValue(params.op),
+    field2: firstValue(params.field2),
+    term2: firstValue(params.term2),
+  };
+  const searchingAdvanced = Object.values(advanced).some(Boolean);
+
   const [results, facets] = await Promise.all([
-    searchWorks({ q: query, format, channel: channels, category: categories, maxPrice, page }),
+    searchWorks({
+      q: query,
+      format,
+      channel: channels,
+      category: categories,
+      maxPrice,
+      page,
+      ...advanced,
+    }),
     listFacets(format),
   ]);
 
   const chips = activeChips(
-    { channels, categories, maxPrice, query, format, view },
+    { channels, categories, maxPrice, query, format, view, advanced },
     facets,
   );
 
@@ -52,7 +74,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <header className={styles.head}>
             <div>
               <h3 className={styles.heading}>
-                {query ? `「${query}」比價結果` : "全部收錄書籍"}
+                {query
+                  ? `「${query}」比價結果`
+                  : searchingAdvanced
+                    ? "進階搜尋結果"
+                    : "全部收錄書籍"}
               </h3>
               <p className={styles.sub}>
                 共 {results.total} 筆 · 六家通路 · 取價時間{" "}
@@ -456,6 +482,7 @@ function activeChips(
     query?: string;
     format?: string;
     view: ViewValue;
+    advanced: Record<string, string | undefined>;
   },
   facets: Facets,
 ): Chip[] {
@@ -472,6 +499,12 @@ function activeChips(
     }
     if (selection.view !== DEFAULT_VIEW) {
       params.set("view", selection.view);
+    }
+    // Removing a 通路 must not quietly widen the 進階搜尋 條件 as well.
+    for (const [name, value] of Object.entries(selection.advanced)) {
+      if (value) {
+        params.set(name, value);
+      }
     }
     for (const code of selection.channels) {
       if (!(key === "channel" && code === value)) {
