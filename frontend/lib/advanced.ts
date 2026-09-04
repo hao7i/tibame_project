@@ -18,7 +18,8 @@ export const SEARCH_FIELDS = [
   { value: "series", label: "系列" },
 ] as const;
 
-export const BOOLEAN_OPS = ["AND", "OR", "NOT"] as const;
+/* NOT was removed from 進階搜尋: 後端 仍支援, 但畫面不再提供入口. */
+export const BOOLEAN_OPS = ["AND", "OR"] as const;
 
 /** 「2024 或更早」 is written with a trailing dash, which the API reads as ≤. */
 export const YEARS = [

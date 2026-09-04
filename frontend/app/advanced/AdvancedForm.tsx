@@ -163,7 +163,7 @@ export function AdvancedForm({ channels }: { channels: Channel[] }) {
         <div className={styles.note}>
           <span className="card-kicker">說明</span>
           <p className="card-body">
-            以 AND／OR／NOT 串接欄位條件；價格區間比對的是各通路目前售價，未勾選通路表示全部收錄通路。
+            以 AND 或 OR 串接兩列欄位條件；價格區間比對的是各通路目前售價，未勾選通路表示全部收錄通路。
           </p>
         </div>
       </aside>
