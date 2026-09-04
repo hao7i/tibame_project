@@ -1,0 +1,92 @@
+/* — 首頁 hero variant — */
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.formats {
+  align-self: flex-start;
+}
+
+.hero .row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.hero .field {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  font-size: 16px;
+}
+
+.hero .submit {
+  flex: none;
+  min-height: 48px;
+  padding-inline: 34px;
+  white-space: nowrap;
+}
+
+.hero .advanced {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* — 搜尋結果 bar variant — */
+.bar {
+  border-bottom: 1px solid var(--color-divider);
+  padding: 16px var(--page-pad);
+}
+
+.bar .row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  max-width: var(--page-max);
+  margin: 0 auto;
+}
+
+.bar .field {
+  flex: 0 1 520px;
+  min-width: 0;
+}
+
+.bar .submit,
+.bar .advanced {
+  flex: none;
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .hero .row {
+    flex-direction: column;
+  }
+
+  .hero .submit {
+    min-height: 46px;
+  }
+
+  .hero .advanced {
+    min-height: 44px;
+  }
+
+  .hero .submit,
+  .hero .advanced {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .bar {
+    padding: 12px 16px;
+  }
+
+  .bar .row {
+    flex-wrap: wrap;
+  }
+
+  .bar .field {
+    flex: 1 1 100%;
+  }
+}

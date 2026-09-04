@@ -1,44 +1,86 @@
-import { Blueprint, BlueprintCorners } from "@/components/Blueprint";
+import Link from "next/link";
+import { Blueprint } from "@/components/Blueprint";
+import { SearchForm } from "@/components/SearchForm";
+import { listChannels } from "@/lib/api";
+import { channelTintStyle } from "@/lib/channels";
 import styles from "./page.module.css";
 
+/** The five 熱門搜尋 the design names; each runs that 搜尋 straight away. */
+const HOT_SEARCHES = [
+  "原子習慣",
+  "人類大歷史",
+  "被討厭的勇氣",
+  "設計的設計",
+  "如何閱讀一本書",
+];
+
+const HOW_IT_WORKS = [
+  { step: "01", label: "輸入書名或 ISBN" },
+  { step: "02", label: "比較售價與版本" },
+  { step: "03", label: "設定目標價追蹤" },
+];
+
 /**
- * Placeholder home page. The real 首頁 — hero band, search row, hot searches,
- * 收錄通路 strip, 運作方式 card — is built in the catalogue/search ticket, so
- * none of that copy or layout is reproduced here. What is here only exercises
- * the ported design system so the shell can be eyeballed at both renditions.
+ * Rendered per request rather than prerendered. The 收錄通路 strip reads 通路 from
+ * the database, which the 管理後台 can edit, and a prerendered page would freeze
+ * that at build time — and would make every production build require a running
+ * backend.
  */
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const channels = await listChannels();
+
   return (
-    <div className="page-shell">
-      <Blueprint className={`card ${styles.notice}`}>
-        <p className="card-kicker">目前狀態</p>
-        <p className="card-title">設計系統已就緒</p>
-        <p className="card-body">
-          字型、色彩、間距與元件樣式已從 Industry 設計系統移植完成，字型由本站自行提供，未使用任何 CDN。
-          首頁的實際內容於書目與搜尋票中建置。
-        </p>
+    <>
+      <section className={styles.hero}>
+        <div className={styles.heroInner}>
+          <h6 className={styles.kicker}>六大通路一次比</h6>
+          <h2 className={styles.headline}>輸入書名，看它在台灣各網路書店賣多少</h2>
 
-        <div className={styles.row}>
-          <span className="tag tag-accent">作品</span>
-          <span className="tag tag-neutral">版本</span>
-          <span className="tag tag-outline">報價</span>
-        </div>
+          <SearchForm variant="hero" />
 
-        <div className={styles.row}>
-          {/* A primary button is a framed object: it wears the blueprint frame
-              and its registration marks, never bare. */}
-          <button type="button" className="btn btn-primary blueprint">
-            比價
-            <BlueprintCorners />
-          </button>
-          <button type="button" className="btn btn-secondary">
-            進階搜尋
-          </button>
-          <button type="button" className="btn btn-ghost">
-            清除篩選
-          </button>
+          <div className={styles.hot}>
+            <span className={styles.hotLabel}>熱門搜尋</span>
+            {HOT_SEARCHES.map((term) => (
+              <Link
+                key={term}
+                href={`/search?q=${encodeURIComponent(term)}`}
+                className={`tag tag-outline ${styles.hotTag}`}
+              >
+                {term}
+              </Link>
+            ))}
+          </div>
         </div>
-      </Blueprint>
-    </div>
+      </section>
+
+      <div className={styles.below}>
+        <section className={styles.strip} aria-label="收錄通路">
+          {channels.map((channel) => (
+            <div
+              key={channel.code}
+              className={styles.stripCell}
+              style={channelTintStyle(channel.code)}
+            >
+              <span className={styles.stripName}>{channel.name}</span>
+              <span className={styles.stripKind}>{channel.kind}</span>
+            </div>
+          ))}
+        </section>
+
+        <Blueprint className={`card ${styles.method}`}>
+          <p className="card-kicker">運作方式</p>
+          <ol className={styles.steps}>
+            {HOW_IT_WORKS.map(({ step, label }) => (
+              <li key={step} className={styles.step}>
+                <span className={styles.stepNumber}>{step}</span>
+                <span>{label}</span>
+              </li>
+            ))}
+          </ol>
+        </Blueprint>
+      </div>
+    </>
   );
 }

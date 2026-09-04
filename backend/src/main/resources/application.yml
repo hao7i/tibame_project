@@ -15,6 +15,16 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        # Every string in this catalogue is Traditional Chinese. Without this,
+        # Hibernate maps String to varchar on SQL Server and each CJK character
+        # is written as "?", which also makes 搜尋 by 書名 match nothing.
+        #
+        # ddl-auto: update only adds missing tables and columns — it never
+        # retypes an existing varchar column. A database created before this
+        # setting existed keeps mangling 書名 with no error to explain it, and
+        # has to have its catalogue tables dropped once so they are rebuilt:
+        #   DROP TABLE offer; DROP TABLE edition; DROP TABLE [work]; DROP TABLE channel;
+        use_nationalized_character_data: true
 
   thymeleaf:
     cache: false

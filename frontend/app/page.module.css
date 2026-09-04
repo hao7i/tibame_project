@@ -1,10 +1,125 @@
-.notice {
-  max-width: 640px;
+/* — hero band — full bleed, so it sits outside the page column — */
+.hero {
+  background: var(--color-accent-100);
+  border-bottom: 1px solid var(--color-divider);
+  padding: 52px var(--page-pad) 44px;
 }
 
-.row {
+.heroInner {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.kicker {
+  color: var(--color-accent-700);
+  margin-bottom: var(--space-2);
+}
+
+.headline {
+  font-size: 36px;
+  margin-bottom: var(--space-6);
+}
+
+.hot {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
   flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hotLabel {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  margin-right: var(--space-1);
+}
+
+/* The band is accent-100, so the outline tags need the page ground under them
+   to keep the border reading as an edge rather than a tint change. */
+.hotTag {
+  background: var(--color-bg);
+  text-decoration: none;
+}
+
+.hotTag:hover {
+  background: var(--color-accent-100);
+}
+
+/* — everything below the band shares the standard page column — */
+.below {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 44px var(--page-pad);
+}
+
+/* — 收錄通路 strip — 1px gaps let the divider show through as the grid lines — */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  background: var(--color-divider);
+  border: 1px solid var(--color-divider);
+}
+
+.stripCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 14px;
+  background: var(--tint-bg);
+  color: var(--tint-text);
+}
+
+.stripName {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 18px;
+  line-height: 1.12;
+}
+
+.stripKind {
+  font-size: 11px;
+  color: var(--tint-sub);
+}
+
+/* — 運作方式 card — */
+.method {
+  max-width: 640px;
+  margin-top: var(--space-8);
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.step {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-divider);
+  font-size: 14px;
+}
+
+.stepNumber {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 15px;
+  color: var(--color-accent-700);
+}
+
+@media (max-width: 860px) {
+  .hero {
+    padding: 30px 16px 32px;
+  }
+
+  .headline {
+    font-size: 26px;
+  }
+
+  /* Both are desktop-only in the design. */
+  .below {
+    display: none;
+  }
 }

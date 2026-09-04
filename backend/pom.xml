@@ -71,6 +71,15 @@
 			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- Tests run against in-memory H2 so ./mvnw test needs no SQL Server.
+		     Search queries wrap both sides in lower(), so the case-sensitivity
+		     difference between H2 and SQL Server cannot change a result. -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security-test</artifactId>

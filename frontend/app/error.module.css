@@ -1,0 +1,5 @@
+.card {
+  max-width: 520px;
+  padding: var(--space-8);
+  align-items: flex-start;
+}

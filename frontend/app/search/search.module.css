@@ -1,0 +1,365 @@
+.layout {
+  display: grid;
+  grid-template-columns: 236px 1fr;
+  max-width: var(--page-max);
+  margin: 0 auto;
+}
+
+/* — facet rail — */
+.rail {
+  border-right: 1px solid var(--color-divider);
+  padding: 22px 22px 40px;
+}
+
+.railTitle {
+  margin-bottom: 14px;
+}
+
+.facetGroup {
+  margin-bottom: 22px;
+}
+
+.facetName {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  margin: 0 0 8px;
+}
+
+.facet {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 3px 0;
+}
+
+.checkbox {
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  flex: none;
+  margin: 0;
+  border: 1px solid var(--color-divider);
+  background: transparent;
+  cursor: pointer;
+}
+
+.checkbox:checked {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.facetLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.facet:has(.checkbox:checked) .facetLabel {
+  color: var(--color-accent-700);
+}
+
+.facetCount {
+  font-size: 11px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.ceiling {
+  margin-bottom: 20px;
+}
+
+.ceilingLabel {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 5px;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+
+.range {
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  accent-color: var(--color-accent);
+}
+
+/* — result header — */
+.results {
+  padding: 22px var(--page-pad) 44px;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.heading {
+  margin-bottom: var(--space-1);
+}
+
+.sub {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  margin: 0;
+}
+
+.viewSwitch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.viewLabel {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.empty {
+  max-width: 480px;
+  padding: var(--space-8);
+}
+
+/* — 列表 view — */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 64px 1fr 300px;
+  grid-template-areas: "cover body aside";
+  gap: 20px;
+  padding: 20px 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.cover {
+  grid-area: cover;
+  align-self: start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 92px;
+  background: var(--color-surface);
+}
+
+.coverLabel {
+  font-size: 10px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.body {
+  grid-area: body;
+  min-width: 0;
+}
+
+.title {
+  font-size: 21px;
+  margin: 0 0 var(--space-1);
+}
+
+.titleLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.titleLink:hover {
+  color: var(--color-accent-700);
+  text-decoration: underline;
+}
+
+.byline {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  margin: 0 0 var(--space-3);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.pairs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+}
+
+.pair {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pairChannel {
+  font-size: 11px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.pairPrice {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 15px;
+  line-height: 1.12;
+}
+
+.pairPriceBest {
+  color: var(--color-accent-700);
+}
+
+.aside {
+  grid-area: aside;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  gap: var(--space-1);
+}
+
+.bestLabel {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  margin: 0;
+}
+
+.bestPrice {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 32px;
+  line-height: 1;
+  color: var(--color-accent-700);
+  margin: 0;
+}
+
+.bestMeta {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  margin: 0 0 var(--space-2);
+}
+
+.watch,
+.detail {
+  width: 100%;
+  justify-content: center;
+}
+
+.watch {
+  margin-bottom: var(--space-2);
+}
+
+/* The narrow-width variants of the two labels stay out of the desktop layout. */
+.watchIconNarrow,
+.detailNarrow {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    display: block;
+  }
+
+  /* The rail becomes a horizontally scrollable strip of the same options. */
+  .rail {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-divider);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    overflow-x: auto;
+  }
+
+  .railTitle,
+  .ceiling {
+    display: none;
+  }
+
+  .facetGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: 0;
+  }
+
+  .facetName {
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .facet {
+    white-space: nowrap;
+    padding: 0;
+  }
+
+  .results {
+    padding: 16px 16px 32px;
+  }
+
+  .row {
+    grid-template-columns: 56px 1fr;
+    grid-template-areas:
+      "cover body"
+      "cover aside";
+    gap: 12px;
+  }
+
+  .cover {
+    height: 76px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .byline {
+    font-size: 12px;
+  }
+
+  /* The design shows only 最低價 on a narrow screen. */
+  .pairs {
+    display: none;
+  }
+
+  .aside {
+    align-items: stretch;
+    text-align: left;
+  }
+
+  .bestLabel {
+    display: none;
+  }
+
+  .bestPrice {
+    font-size: 22px;
+  }
+
+  .watch,
+  .detail {
+    min-height: 38px;
+  }
+
+  .watchIconWide,
+  .watchLabel,
+  .detailWide {
+    display: none;
+  }
+
+  .watchIconNarrow,
+  .detailNarrow {
+    display: inline;
+  }
+}

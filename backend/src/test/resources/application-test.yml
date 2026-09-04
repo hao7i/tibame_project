@@ -1,0 +1,18 @@
+# Tests run on in-memory H2 rather than SQL Server: ./mvnw test then needs no
+# running database. The seeder is a CommandLineRunner, so every @SpringBootTest
+# starts from the same six 作品 the production database is seeded with.
+spring:
+  datasource:
+    url: jdbc:h2:mem:bookprice-${random.uuid};DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+
+logging:
+  level:
+    org.hibernate.SQL: warn
