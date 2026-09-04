@@ -118,21 +118,21 @@ class CatalogueFilterApiTest {
     }
 
     @Test
-    @DisplayName("分頁：每頁四筆，總數是套用篩選後、分頁前的筆數")
+    @DisplayName("每頁五筆，總數是套用篩選後、取頁前的筆數")
     void resultsArePaged() throws Exception {
         mockMvc.perform(get("/api/works").param("page", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(6))
                 .andExpect(jsonPath("$.page").value(1))
-                .andExpect(jsonPath("$.pageSize").value(4))
+                .andExpect(jsonPath("$.pageSize").value(5))
                 .andExpect(jsonPath("$.totalPages").value(2))
-                .andExpect(jsonPath("$.works.length()").value(4));
+                .andExpect(jsonPath("$.works.length()").value(5));
 
         mockMvc.perform(get("/api/works").param("page", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(6))
                 .andExpect(jsonPath("$.page").value(2))
-                .andExpect(jsonPath("$.works.length()").value(2));
+                .andExpect(jsonPath("$.works.length()").value(1));
     }
 
     @Test
@@ -141,7 +141,7 @@ class CatalogueFilterApiTest {
         mockMvc.perform(get("/api/works").param("page", "99"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(2))
-                .andExpect(jsonPath("$.works.length()").value(2));
+                .andExpect(jsonPath("$.works.length()").value(1));
 
         mockMvc.perform(get("/api/works").param("page", "0"))
                 .andExpect(status().isOk())

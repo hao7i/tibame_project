@@ -44,8 +44,8 @@ class CatalogueSearchApiTest {
         mockMvc.perform(get("/api/works"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(6))
-                // total counts every match; works holds one page of them.
-                .andExpect(jsonPath("$.works.length()").value(4))
+                // total counts every match; 畫面 只列 PAGE_SIZE 筆, 不分頁.
+                .andExpect(jsonPath("$.works.length()").value(5))
                 .andExpect(jsonPath("$.query").doesNotExist())
                 .andExpect(jsonPath("$.fetchedAt").exists());
     }

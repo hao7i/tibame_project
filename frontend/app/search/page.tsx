@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { X } from "lucide-react";
 import { SearchForm } from "@/components/SearchForm";
 import { listFacets, searchWorks, type Facets, type WorkSummary } from "@/lib/api";
 import { FacetRail } from "./FacetRail";
@@ -10,8 +10,6 @@ import { ViewSwitch } from "./ViewSwitch";
 import { DEFAULT_VIEW, PRICE_CEILING, parseView, type ViewValue } from "@/lib/filters";
 import styles from "./search.module.css";
 
-/** Only the first four 通路 pairs are shown; the rest live in the detail screen. */
-const MAX_CHANNEL_PAIRS = 4;
 
 type SearchPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -23,7 +21,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const query = firstValue(params.q);
   const channels = allValues(params.channel);
   const maxPrice = firstValue(params.maxPrice);
-  const page = firstValue(params.page);
   const view = parseView(firstValue(params.view));
 
   // 進階搜尋 conditions travel as their own parameters. This screen does not
@@ -45,7 +42,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       q: query,
       channel: channels,
       maxPrice,
-      page,
       ...advanced,
     }),
     listFacets(),
@@ -128,13 +124,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             />
           )}
 
-          {results.totalPages > 1 ? (
-            <Pagination
-              page={results.page}
-              totalPages={results.totalPages}
-              params={params}
-            />
-          ) : null}
         </section>
       </div>
     </>
@@ -157,7 +146,12 @@ function ResultBody({
     return (
       <div className={styles.cards}>
         {works.map((work) => (
-          <ResultCard key={work.isbn} work={work} watched={watchedIsbns.has(work.isbn)} />
+          <ResultCard
+            key={work.isbn}
+            work={work}
+            channels={channels}
+            watched={watchedIsbns.has(work.isbn)}
+          />
         ))}
       </div>
     );
@@ -172,15 +166,29 @@ function ResultBody({
   return (
     <ol className={styles.list}>
       {works.map((work) => (
-        <ResultRow key={work.isbn} work={work} watched={watchedIsbns.has(work.isbn)} />
+        <ResultRow
+          key={work.isbn}
+          work={work}
+          channels={channels}
+          watched={watchedIsbns.has(work.isbn)}
+        />
       ))}
     </ol>
   );
 }
 
 /** One 作品 in 卡片 view. */
-function ResultCard({ work, watched }: { work: WorkSummary; watched: boolean }) {
+function ResultCard({
+  work,
+  channels,
+  watched,
+}: {
+  work: WorkSummary;
+  channels: Facets["channels"];
+  watched: boolean;
+}) {
   const detailHref = `/works/${work.isbn}`;
+  const pairs = channelPairs(work, channels);
 
   return (
     <div className={`card ${styles.card}`}>
@@ -210,6 +218,24 @@ function ResultCard({ work, watched }: { work: WorkSummary; watched: boolean }) 
       <p className="card-meta">
         定價 {work.listPrice} · {work.channelCount} 個通路
       </p>
+
+      {/* Every 通路 listed, the same set the 列表 and 表格 版型 show. */}
+      <div className={styles.cardPairs}>
+        {pairs.map((pair) => (
+          <div key={pair.code} className={styles.cardPair}>
+            <span className={styles.pairChannel}>{pair.name}</span>
+            <span
+              className={
+                pair.best
+                  ? `${styles.pairPrice} ${styles.pairPriceBest}`
+                  : styles.pairPrice
+              }
+            >
+              {pair.price === null ? "—" : pair.price}
+            </span>
+          </div>
+        ))}
+      </div>
 
       <div className={styles.cardActions}>
         <WatchToggle isbn={work.isbn} title={work.title} watched={watched} variant="icon" />
@@ -326,15 +352,41 @@ function priceAt(work: WorkSummary, channelCode: string): number | null {
   return prices.length === 0 ? null : Math.min(...prices);
 }
 
+/**
+ * One entry per 通路 for one 作品, in the 通路 order the 篩選 rail uses, so the
+ * 列表, 卡片 and 表格 版型 all read the same way.
+ *
+ * A 通路 with no 報價 is kept and shows 查無 rather than being dropped: a missing
+ * row would otherwise be indistinguishable from a 通路 we never asked about.
+ */
+function channelPairs(work: WorkSummary, channels: Facets["channels"]) {
+  return channels.map((channel) => {
+    const price = priceAt(work, channel.code);
+
+    return {
+      code: channel.code,
+      name: channel.name,
+      price,
+      best: price !== null && price === work.bestPrice?.price,
+    };
+  });
+}
+
 /** One 作品 in 列表 view. */
-function ResultRow({ work, watched }: { work: WorkSummary; watched: boolean }) {
-  const pairs = work.channelPrices.slice(0, MAX_CHANNEL_PAIRS);
+function ResultRow({
+  work,
+  channels,
+  watched,
+}: {
+  work: WorkSummary;
+  channels: Facets["channels"];
+  watched: boolean;
+}) {
   const detailHref = `/works/${work.isbn}`;
 
-  // The cheapest of the pairs actually shown, which is not always the 作品
-  // 最低價: that one can sit past the fourth column, and the right-hand column
-  // states it anyway.
-  const cheapestShown = Math.min(...pairs.map((pair) => pair.price));
+  // Every 通路 gets a column, carrying a price or 查無 — the same reading the
+  // 表格 版型 gives, so the two 版型 cannot disagree about who stocks a 作品.
+  const pairs = channelPairs(work, channels);
 
   return (
     <li className={styles.row}>
@@ -358,16 +410,16 @@ function ResultRow({ work, watched }: { work: WorkSummary; watched: boolean }) {
 
         <div className={styles.pairs}>
           {pairs.map((pair) => (
-            <div key={pair.channel} className={styles.pair}>
-              <span className={styles.pairChannel}>{pair.channel}</span>
+            <div key={pair.code} className={styles.pair}>
+              <span className={styles.pairChannel}>{pair.name}</span>
               <span
                 className={
-                  pair.price === cheapestShown
+                  pair.best
                     ? `${styles.pairPrice} ${styles.pairPriceBest}`
                     : styles.pairPrice
                 }
               >
-                {pair.price}
+                {pair.price === null ? "—" : pair.price}
               </span>
             </div>
           ))}
@@ -398,74 +450,6 @@ function ResultRow({ work, watched }: { work: WorkSummary; watched: boolean }) {
         </Link>
       </div>
     </li>
-  );
-}
-
-function Pagination({
-  page,
-  totalPages,
-  params,
-}: {
-  page: number;
-  totalPages: number;
-  params: { [key: string]: string | string[] | undefined };
-}) {
-  const pageHref = (target: number) => {
-    const next = toParams(params);
-    if (target <= 1) {
-      next.delete("page");
-    } else {
-      next.set("page", String(target));
-    }
-    const queryString = next.toString();
-    return queryString ? `/search?${queryString}` : "/search";
-  };
-
-  const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
-
-  return (
-    <nav className={styles.pagination} aria-label="分頁">
-      {page > 1 ? (
-        <Link href={pageHref(page - 1)} className="btn btn-secondary">
-          <ChevronLeft size={16} strokeWidth={1.5} />
-          上一頁
-        </Link>
-      ) : (
-        <button type="button" className="btn btn-secondary" disabled>
-          <ChevronLeft size={16} strokeWidth={1.5} />
-          上一頁
-        </button>
-      )}
-
-      {pages.map((target) => (
-        <Link
-          key={target}
-          href={pageHref(target)}
-          aria-current={target === page ? "page" : undefined}
-          className={`btn btn-secondary ${styles.pageLink} ${
-            target === page ? styles.pageCurrent : ""
-          }`}
-        >
-          {target}
-        </Link>
-      ))}
-
-      {page < totalPages ? (
-        <Link href={pageHref(page + 1)} className="btn btn-secondary">
-          下一頁
-          <ChevronRight size={16} strokeWidth={1.5} />
-        </Link>
-      ) : (
-        <button type="button" className="btn btn-secondary" disabled>
-          下一頁
-          <ChevronRight size={16} strokeWidth={1.5} />
-        </button>
-      )}
-
-      <span className={styles.pageCount}>
-        第 {page} 頁 / 共 {totalPages} 頁
-      </span>
-    </nav>
   );
 }
 
@@ -537,22 +521,6 @@ function activeChips(
   }
 
   return chips;
-}
-
-function toParams(params: {
-  [key: string]: string | string[] | undefined;
-}): URLSearchParams {
-  const result = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (Array.isArray(value)) {
-      for (const entry of value) {
-        result.append(key, entry);
-      }
-    } else if (value !== undefined) {
-      result.set(key, value);
-    }
-  }
-  return result;
 }
 
 /** The design writes this as 「作者 / 出版社, 出版年」. */

@@ -31,8 +31,11 @@ import tw.bookprice.catalogue.dto.WorkSummary;
 @Transactional(readOnly = true)
 public class CatalogueService {
 
-    /** 分頁 size is the server decision, not the caller one. */
-    static final int PAGE_SIZE = 4;
+    /**
+     * 搜尋結果 至多這麼多筆, 而且不分頁 —— 前端三種呈現方式都只列這一頁。
+     * 超出的比對結果不會顯示, 但 total 仍回報真實的比對總數。
+     */
+    static final int PAGE_SIZE = 5;
 
     private final WorkRepository workRepository;
     private final ChannelRepository channelRepository;

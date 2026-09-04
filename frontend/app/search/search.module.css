@@ -145,39 +145,6 @@
   padding: var(--space-8);
 }
 
-/* — pagination — */
-.pagination {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-8);
-  padding-top: var(--space-6);
-  border-top: 1px solid var(--color-divider);
-}
-
-.pageLink {
-  text-decoration: none;
-  min-width: 38px;
-  justify-content: center;
-}
-
-.pageCurrent {
-  background: var(--color-accent);
-  color: var(--color-bg);
-  border-color: var(--color-accent);
-}
-
-.pageCurrent:hover {
-  background: var(--color-accent-600);
-}
-
-.pageCount {
-  margin-left: var(--space-3);
-  font-size: 12px;
-  color: color-mix(in srgb, var(--color-text) 55%, transparent);
-}
-
 /* — 列表 view — */
 .list {
   list-style: none;
@@ -605,4 +572,19 @@
 .skeletonPrice {
   height: 32px;
   width: 120px;
+}
+
+/* — 卡片 view: the same 五通路 strip the 列表 shows, stacked to fit the card — */
+.cardPairs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-divider);
+}
+
+.cardPair {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
