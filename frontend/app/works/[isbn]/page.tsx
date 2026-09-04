@@ -136,7 +136,11 @@ export default async function WorkPage({ params, searchParams }: WorkPageProps) 
 
 function OfferRow({ offer }: { offer: OfferView }) {
   return (
-    <tr className={offer.best ? styles.bestRow : undefined}>
+    <tr
+      className={[offer.best ? styles.bestRow : "", offer.stale ? styles.staleRow : ""]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <td>
         <span className={styles.channelCell}>
           <span
@@ -146,13 +150,19 @@ function OfferRow({ offer }: { offer: OfferView }) {
           />
           <span className={styles.channelName}>{offer.channel}</span>
           {offer.best ? <span className="tag tag-accent">最低價</span> : null}
+          {/* A 通路 that could not be read this time. The price stays visible
+              because it is still the last thing the shop actually said. */}
+          {offer.stale ? <span className="tag tag-neutral">取價失敗</span> : null}
         </span>
       </td>
       <td>{offer.formatLabel}</td>
-      <td className={styles.muted}>{offer.stockStatus}</td>
+      <td className={styles.muted}>
+        {offer.stale ? "暫時無法取得" : offer.stockStatus}
+      </td>
       <td className={styles.numeric}>{offer.discountLabel ?? "—"}</td>
       <td className={`${styles.numeric} ${styles.price} ${offer.best ? styles.bestPriceCell : ""}`}>
         NT$ {offer.price}
+        {offer.stale ? <span className={styles.staleNote}>上次取得</span> : null}
       </td>
       <td className={styles.numeric}>
         <BuyLink url={offer.purchaseUrl} label="前往購買" className="btn btn-secondary" />

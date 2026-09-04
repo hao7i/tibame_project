@@ -542,3 +542,67 @@
     font-size: 11px;
   }
 }
+
+/* — 骨架畫面 —
+   A block that occupies the space its real content will occupy, so the page
+   does not jump when the 取價 answers. The shimmer is the only motion: a
+   skeleton that pulses the whole layout draws attention to the wait itself. */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 0%,
+    color-mix(in srgb, var(--color-text) 10%, var(--color-surface)) 50%,
+    var(--color-surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* Motion is a preference, not a given. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+.skeletonTitle {
+  height: 14px;
+  width: 60%;
+  margin-bottom: var(--space-4);
+}
+
+.skeletonFacet {
+  height: 13px;
+  width: 100%;
+  margin-bottom: var(--space-3);
+}
+
+.skeletonHeading {
+  height: 22px;
+  width: 260px;
+  max-width: 70%;
+  margin-bottom: var(--space-2);
+}
+
+.skeletonSub {
+  height: 12px;
+  width: 340px;
+  max-width: 85%;
+  margin-bottom: var(--space-4);
+}
+
+.skeletonTags {
+  height: 18px;
+  width: 220px;
+  max-width: 60%;
+}
+
+.skeletonPrice {
+  height: 32px;
+  width: 120px;
+}

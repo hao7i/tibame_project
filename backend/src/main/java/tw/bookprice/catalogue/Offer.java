@@ -47,6 +47,18 @@ public class Offer {
     @Column(name = "fetched_at", nullable = false)
     private Instant fetchedAt;
 
+    /**
+     * When the most recent 取價 attempt for this 報價 failed, or null when the
+     * last attempt succeeded.
+     *
+     * A failed attempt deliberately keeps the 售價 it had: the number is still
+     * the last thing the 通路 actually said, and blanking it would throw away
+     * true information because of a transient outage. What changes is that the
+     * screen may no longer present it as current.
+     */
+    @Column(name = "fetch_failed_at")
+    private Instant fetchFailedAt;
+
     protected Offer() {
         // for JPA
     }
@@ -93,6 +105,27 @@ public class Offer {
         this.price = price;
         this.stockStatus = stockStatus;
         this.fetchedAt = fetchedAt;
+        // A success clears the previous failure: the 報價 is current again.
+        this.fetchFailedAt = null;
+    }
+
+    /**
+     * Record that the 通路 could not be read this time.
+     *
+     * 售價 and 取價時間 are untouched, so the screen can keep showing the last
+     * known price while saying plainly that it is no longer fresh.
+     */
+    public void recordFetchFailure(Instant attemptedAt) {
+        this.fetchFailedAt = attemptedAt;
+    }
+
+    /** True when the last 取價 attempt failed and the 售價 is therefore stale. */
+    public boolean isFetchFailed() {
+        return fetchFailedAt != null;
+    }
+
+    public Instant getFetchFailedAt() {
+        return fetchFailedAt;
     }
 
     public Instant getFetchedAt() {

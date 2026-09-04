@@ -50,6 +50,11 @@ export type OfferView = {
   purchaseUrl?: string;
   /** The 最低價 row, which the design tints and tags. */
   best: boolean;
+  /**
+   * The last 取價 for this 通路 failed, so the 售價 above is the last known one
+   * rather than a current one.
+   */
+  stale: boolean;
 };
 
 export type WorkDetail = {

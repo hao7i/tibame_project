@@ -3,10 +3,7 @@ package tw.bookprice.pricing;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -38,16 +35,14 @@ public class PriceRefreshService {
 
     private final WorkRepository workRepository;
     private final ChannelRepository channelRepository;
-    private final Map<String, ChannelPriceProvider> providersByCode;
+    private final List<ChannelPriceProvider> providers;
 
     public PriceRefreshService(WorkRepository workRepository,
             ChannelRepository channelRepository,
             List<ChannelPriceProvider> providers) {
         this.workRepository = workRepository;
         this.channelRepository = channelRepository;
-        this.providersByCode = providers.stream()
-                .collect(Collectors.toMap(ChannelPriceProvider::channelCode,
-                        Function.identity()));
+        this.providers = List.copyOf(providers);
     }
 
     /** Re-asks every 通路 for every 報價 it holds, and writes what comes back. */
@@ -59,7 +54,13 @@ public class PriceRefreshService {
         List<RefreshReport.ChannelResult> results = new ArrayList<>();
 
         for (Channel channel : channelRepository.findAllByOrderByDisplayOrderAsc()) {
-            ChannelPriceProvider provider = providersByCode.get(channel.getCode());
+            // Resolved per run rather than cached into a map at construction:
+            // that made the service depend on every provider being fully built
+            // before this one was, which is a coupling with nothing to gain.
+            ChannelPriceProvider provider = providers.stream()
+                    .filter(candidate -> channel.getCode().equals(candidate.channelCode()))
+                    .findFirst()
+                    .orElse(null);
 
             if (provider == null) {
                 // A 通路 in the 書目 with nobody to ask is a configuration gap, and
@@ -101,6 +102,9 @@ public class PriceRefreshService {
                                 fetched.get().price(), fetched.get().stockStatus(), startedAt);
                         updated++;
                     } catch (RuntimeException cause) {
+                        // Marked on the 報價 itself so 單書比價 can show this one
+                        // 通路 as 取價失敗 while the other five stay current.
+                        offer.recordFetchFailure(startedAt);
                         failed++;
                         if (note == null) {
                             note = cause.getMessage();

@@ -360,7 +360,8 @@ public class CatalogueService {
                 offer.getPrice(),
                 discountLabel(percent),
                 offer.getChannel().purchaseUrlFor(edition.getIsbn()),
-                best);
+                best,
+                offer.isFetchFailed());
     }
 
     /** Blank means 價格低→高; anything else has to name a known order. */
