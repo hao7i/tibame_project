@@ -100,7 +100,7 @@ class AdminBackofficeTest {
         mockMvc.perform(get("/admin/channels").with(httpBasic(ADMIN, ADMIN_PASSWORD)))
                 .andExpect(status().isOk())
                 .andExpect(model().attributeExists("channels"))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("博客來")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("五南文化廣場")));
 
         mockMvc.perform(get("/admin/works").with(httpBasic(ADMIN, ADMIN_PASSWORD)))
                 .andExpect(status().isOk())
@@ -115,7 +115,7 @@ class AdminBackofficeTest {
     @DisplayName("可以維護報價，且手動修改不會改動取價時間")
     void anOfferCanBeCorrectedWithoutFakingAFetch() throws Exception {
         var before = catalogueAdminService.listOffers(ATOMIC_PAPER).stream()
-                .filter(row -> row.channelCode().equals("BOOKS_TW"))
+                .filter(row -> row.channelCode().equals("WUNAN"))
                 .findFirst().orElseThrow();
 
         mockMvc.perform(post("/admin/works/" + ATOMIC_PAPER + "/offers/" + before.id())
@@ -138,14 +138,14 @@ class AdminBackofficeTest {
     @Test
     @DisplayName("可以維護通路的購買連結樣板")
     void aChannelLinkCanBeMaintained() throws Exception {
-        mockMvc.perform(post("/admin/channels/BOOKS_TW")
+        mockMvc.perform(post("/admin/channels/WUNAN")
                         .with(httpBasic(ADMIN, ADMIN_PASSWORD)).with(csrf())
                         .param("searchUrlTemplate", "https://www.books.com.tw/products/{isbn}"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin/channels"));
 
         assertThat(catalogueAdminService.listChannels().stream()
-                .filter(row -> row.code().equals("BOOKS_TW"))
+                .filter(row -> row.code().equals("WUNAN"))
                 .findFirst().orElseThrow()
                 .searchUrlTemplate())
                 .isEqualTo("https://www.books.com.tw/products/{isbn}");

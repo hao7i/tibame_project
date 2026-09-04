@@ -20,8 +20,20 @@ public abstract class SeedChannelPriceProvider implements ChannelPriceProvider {
 
     private final WorkRepository workRepository;
 
+
     protected SeedChannelPriceProvider(WorkRepository workRepository) {
         this.workRepository = workRepository;
+    }
+
+    /**
+     * The 書名 this ISBN belongs to in our own 書目.
+     *
+     * A live provider needs it when the 通路 offers nothing else to check a page
+     * against — see WunanPriceProvider, where the only ISBN on the page is the
+     * one we put in the URL.
+     */
+    protected Optional<String> expectedTitle(String isbn) {
+        return workRepository.findByEditionIsbn(isbn).map(work -> work.getTitle());
     }
 
     @Override

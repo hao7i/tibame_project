@@ -8,8 +8,8 @@ import type { Channel } from "@/lib/api";
  * conditions, and if they were written separately the preview could promise a
  * search the results page never ran.
  *
- * The UI shows 中文 labels (書名, 電子書, 博客來) while the URL carries the codes
- * the API understands (title, EBOOK, BOOKS_TW) — the same split 載體 already
+ * The UI shows 中文 labels (書名, 電子書, 金石堂) while the URL carries the codes
+ * the API understands (title, EBOOK, KINGSTONE) — the same split 載體 already
  * uses elsewhere.
  */
 
@@ -74,7 +74,7 @@ function labelOf(
 
 /**
  * The 查詢式預覽 string, e.g.
- * `書名:"習慣" AND 出版社:"天下" AND price:[100 TO 400] AND shop:(博客來 OR Readmoo)`.
+ * `書名:"習慣" AND 出版社:"天下" AND price:[100 TO 400] AND shop:(金石堂 OR Readmoo)`.
  *
  * A row with a blank 關鍵字 is not a condition, so it drops out and takes its
  * 布林 operator with it — which is exactly what the API does with it, and why

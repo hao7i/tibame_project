@@ -20,6 +20,8 @@ bookprice:
       live: false
     sanmin:
       live: false
+    wunan:
+      live: false
     taaze:
       live: false
 

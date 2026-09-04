@@ -3,6 +3,7 @@ package tw.bookprice.seed;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
@@ -67,7 +68,12 @@ public class CatalogueSeeder {
     }
 
     /**
-     * 誠品線上 was replaced by 三民網路書店 after databases had already been seeded.
+     * 通路 that were replaced after databases had already been seeded.
+     *
+     * 誠品線上 became 三民網路書店 and 博客來 became 五南文化廣場. Both were replaced
+     * for the same reason: neither could be priced. 誠品 renders its price only
+     * in the browser and disallows /search for everybody; 博客來 blocks this
+     * crawler outright in robots.txt, so it can never be more than seed data.
      *
      * 誠品 could not be priced at all — a client-rendered SPA with no price in
      * its HTML, behind a robots.txt that disallows /search for everybody — so
@@ -76,22 +82,23 @@ public class CatalogueSeeder {
      * because 報價 point at the row: converting it carries them across, and the
      * first 取價 then corrects the prices to what 三民 actually charges.
      */
-    private static final String REPLACED_CHANNEL_CODE = "ESLITE";
+    private static final Set<String> RETIRED_CHANNEL_CODES = Set.of("ESLITE", "BOOKS_TW");
 
-    private void migrateReplacedChannel() {
-        channelRepository.findAll().stream()
-                .filter(channel -> REPLACED_CHANNEL_CODE.equals(channel.getCode()))
-                .findFirst()
-                .ifPresent(channel -> CHANNELS.stream()
-                        .filter(spec -> spec.displayOrder() == channel.getDisplayOrder())
-                        .findFirst()
-                        .ifPresent(spec -> channel.replaceWith(
-                                spec.code(), spec.name(), spec.kind(),
-                                spec.searchUrlTemplate())));
+    private void migrateReplacedChannels() {
+        for (Channel channel : channelRepository.findAll()) {
+            if (!RETIRED_CHANNEL_CODES.contains(channel.getCode())) {
+                continue;
+            }
+            CHANNELS.stream()
+                    .filter(spec -> spec.displayOrder() == channel.getDisplayOrder())
+                    .findFirst()
+                    .ifPresent(spec -> channel.replaceWith(
+                            spec.code(), spec.name(), spec.kind(), spec.searchUrlTemplate()));
+        }
     }
 
     private Map<String, Channel> seedChannels() {
-        migrateReplacedChannel();
+        migrateReplacedChannels();
 
         if (channelRepository.count() == 0) {
             channelRepository.saveAll(CHANNELS.stream()
@@ -164,7 +171,7 @@ public class CatalogueSeeder {
             List<OfferSpec> offers) {
     }
 
-    private static final String BOOKS_TW = "BOOKS_TW";
+    private static final String WUNAN = "WUNAN";
     private static final String SANMIN = "SANMIN";
     private static final String KINGSTONE = "KINGSTONE";
     private static final String TAAZE = "TAAZE";
@@ -174,17 +181,17 @@ public class CatalogueSeeder {
     /**
      * 前往購買 targets, per docs/research/book-price-channel-data-sources.md.
      *
-     * Four 通路 have an ISBN search URL that was verified against the live site:
-     * 金石堂, 讀冊生活, 樂天Kobo and 三民網路書店. The other two get their site root
-     * instead of a guessed link:
+     * Five 通路 have an ISBN link that was verified against the live site:
+     * 五南文化廣場, 三民網路書店, 金石堂, 讀冊生活 and 樂天Kobo. 五南 is the most
+     * direct of them — the ISBN is the product URL itself.
      *
-     *   - 博客來: the search host is robots-Allowed but the query parameter name
-     *     is recorded as Not established, and the research declined to guess it.
-     *     One browser visit by a human settles it.
-     *   - Readmoo: ISBN is not a documented search input and /search/ is
-     *     disallowed for everyone.
+     * Only Readmoo falls back to its site root: ISBN is not a documented search
+     * input there and /search/ is disallowed for everyone.
      *
-     * 三民網路書店 replaced 誠品線上 here. 誠品 is a client-rendered SPA that ships
+     * 五南文化廣場 replaced 博客來, which blocks this crawler in robots.txt and so
+     * could never be more than seed data.
+     *
+     * 三民網路書店 replaced 誠品線上. 誠品 is a client-rendered SPA that ships
      * no price in its HTML, and its robots.txt disallows /search for everybody,
      * so neither 取價 nor even an ISBN link was reachable. 三民 allows both and
      * is the only 通路 examined with a dedicated ISBN search parameter
@@ -194,8 +201,8 @@ public class CatalogueSeeder {
      * 票 10 replaces these with real product-page URLs for the 通路 it fetches.
      */
     private static final List<ChannelSpec> CHANNELS = List.of(
-            new ChannelSpec(BOOKS_TW, "博客來", "紙本 / 電子書", 0,
-                    "https://www.books.com.tw/"),
+            new ChannelSpec(WUNAN, "五南文化廣場", "紙本", 0,
+                    "https://www.wunanbooks.com.tw/product.php?isbn={isbn}"),
             new ChannelSpec(SANMIN, "三民網路書店", "紙本", 1,
                     "https://www.sanmin.com.tw/search/?ct=isbn&qu={isbn}"),
             new ChannelSpec(KINGSTONE, "金石堂", "紙本", 2,
@@ -221,7 +228,7 @@ public class CatalogueSeeder {
                     "9789861755267", "紙本平裝",
                     "9789861755274", EBOOK_LABEL,
                     List.of(
-                            new OfferSpec(BOOKS_TW, Format.PAPER, 261, "24 小時到貨"),
+                            new OfferSpec(WUNAN, Format.PAPER, 261, "24 小時到貨"),
                             new OfferSpec(SANMIN, Format.PAPER, 264, "3-5 個工作日"),
                             new OfferSpec(KINGSTONE, Format.PAPER, 280, "庫存有限"),
                             new OfferSpec(TAAZE, Format.PAPER, 271, "3-5 個工作日"),
@@ -235,7 +242,7 @@ public class CatalogueSeeder {
                     "9789864792917", "紙本精裝",
                     "9789864792924", EBOOK_LABEL,
                     List.of(
-                            new OfferSpec(BOOKS_TW, Format.PAPER, 379, "24 小時到貨"),
+                            new OfferSpec(WUNAN, Format.PAPER, 379, "24 小時到貨"),
                             new OfferSpec(SANMIN, Format.PAPER, 384, "3-5 個工作日"),
                             new OfferSpec(KINGSTONE, Format.PAPER, 408, "現貨"),
                             new OfferSpec(TAAZE, Format.PAPER, 394, "3-5 個工作日"),
@@ -247,7 +254,7 @@ public class CatalogueSeeder {
                     "9789861371955", "紙本平裝",
                     "9789861371962", EBOOK_LABEL,
                     List.of(
-                            new OfferSpec(BOOKS_TW, Format.PAPER, 237, "24 小時到貨"),
+                            new OfferSpec(WUNAN, Format.PAPER, 237, "24 小時到貨"),
                             new OfferSpec(SANMIN, Format.PAPER, 240, "3-5 個工作日"),
                             new OfferSpec(KINGSTONE, Format.PAPER, 255, "現貨"),
                             new OfferSpec(TAAZE, Format.PAPER, 246, "3-5 個工作日"),
@@ -259,7 +266,7 @@ public class CatalogueSeeder {
                     "9789861343181", "紙本平裝",
                     "9789861343198", EBOOK_LABEL,
                     List.of(
-                            new OfferSpec(BOOKS_TW, Format.PAPER, 332, "24 小時到貨"),
+                            new OfferSpec(WUNAN, Format.PAPER, 332, "24 小時到貨"),
                             new OfferSpec(SANMIN, Format.PAPER, 336, "3-5 個工作日"),
                             new OfferSpec(KINGSTONE, Format.PAPER, 357, "訂購後 5 日"),
                             new OfferSpec(TAAZE, Format.PAPER, 344, "3-5 個工作日"),
@@ -271,7 +278,7 @@ public class CatalogueSeeder {
                     "9789570517989", "紙本平裝",
                     "9789570517996", EBOOK_LABEL,
                     List.of(
-                            new OfferSpec(BOOKS_TW, Format.PAPER, 395, "7 日內到貨"),
+                            new OfferSpec(WUNAN, Format.PAPER, 395, "7 日內到貨"),
                             new OfferSpec(SANMIN, Format.PAPER, 400, "3-5 個工作日"),
                             new OfferSpec(KINGSTONE, Format.PAPER, 425, "現貨"),
                             new OfferSpec(TAAZE, Format.PAPER, 410, "3-5 個工作日"),
@@ -283,7 +290,7 @@ public class CatalogueSeeder {
                     "9789866637155", "紙本平裝",
                     null, null,
                     List.of(
-                            new OfferSpec(BOOKS_TW, Format.PAPER, 504, "7 日內到貨"),
+                            new OfferSpec(WUNAN, Format.PAPER, 504, "7 日內到貨"),
                             new OfferSpec(SANMIN, Format.PAPER, 510, "3-5 個工作日"),
                             new OfferSpec(KINGSTONE, Format.PAPER, 540, "訂購後 5 日"),
                             new OfferSpec(TAAZE, Format.PAPER, 492, "3-5 個工作日"))));

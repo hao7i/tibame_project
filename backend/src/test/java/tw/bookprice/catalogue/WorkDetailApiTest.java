@@ -79,7 +79,7 @@ class WorkDetailApiTest {
     void offersCanBeSortedByChannelOrder() throws Exception {
         mockMvc.perform(get("/api/works/{isbn}", ATOMIC_HABITS_PAPER).param("sort", "CHANNEL"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.offers[0].channel").value("博客來"))
+                .andExpect(jsonPath("$.offers[0].channel").value("五南文化廣場"))
                 .andExpect(jsonPath("$.offers[2].channel").value("金石堂"))
                 .andExpect(jsonPath("$.offers[5].channel").value("Readmoo"));
     }
@@ -107,11 +107,11 @@ class WorkDetailApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.offers.length()").value(4))
                 .andExpect(jsonPath("$.channelCount").value(4))
-                .andExpect(jsonPath("$.bestPrice.channel").value("博客來"))
+                .andExpect(jsonPath("$.bestPrice.channel").value("五南文化廣場"))
                 .andExpect(jsonPath("$.bestPrice.price").value(261))
                 .andExpect(jsonPath("$.offers[?(@.best == true)]", hasSize(1)))
                 .andExpect(jsonPath("$.offers[0].best").value(true))
-                .andExpect(jsonPath("$.offers[0].channel").value("博客來"));
+                .andExpect(jsonPath("$.offers[0].channel").value("五南文化廣場"));
     }
 
     @Test
@@ -119,7 +119,7 @@ class WorkDetailApiTest {
     void everyOfferCarriesTheColumnsTheTableRenders() throws Exception {
         mockMvc.perform(get("/api/works/{isbn}", ATOMIC_HABITS_PAPER).param("sort", "CHANNEL"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.offers[0].channelCode").value("BOOKS_TW"))
+                .andExpect(jsonPath("$.offers[0].channelCode").value("WUNAN"))
                 .andExpect(jsonPath("$.offers[0].formatLabel").value("紙本平裝"))
                 .andExpect(jsonPath("$.offers[0].stockStatus").value("24 小時到貨"))
                 .andExpect(jsonPath("$.offers[0].discountLabel").value("79 折"))

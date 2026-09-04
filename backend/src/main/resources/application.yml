@@ -52,6 +52,10 @@ bookprice:
     # 三民網路書店：唯一具備專屬 ISBN 搜尋參數的通路，查詢是精確的而非在搜尋結果中猜。
     sanmin:
       live: true
+    # 五南文化廣場：ISBN 即商品網址，一次請求即可。但該站會把網址上的 ISBN 原樣
+    # 印回頁面（連捏造的 ISBN 也一樣），所以驗證靠書名，見 WunanParsing。
+    wunan:
+      live: true
     # 讀冊生活。它的伺服器送出的憑證鏈不完整（缺少 leaf 自己的簽發者），
     # 靠 BackendApplication 開啟的 AIA 補抓機制解決——見該類別的註解。
     taaze:

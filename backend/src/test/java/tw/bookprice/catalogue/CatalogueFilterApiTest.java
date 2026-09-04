@@ -158,7 +158,7 @@ class CatalogueFilterApiTest {
         mockMvc.perform(get("/api/facets"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.channels.length()").value(6))
-                .andExpect(jsonPath("$.channels[0].code").value("BOOKS_TW"))
+                .andExpect(jsonPath("$.channels[0].code").value("WUNAN"))
                 .andExpect(jsonPath("$.channels[0].count").value(6))
                 // 樂天Kobo carries a 報價 for four of the six 作品, Readmoo for five.
                 .andExpect(jsonPath("$.channels[4].code").value("KOBO"))

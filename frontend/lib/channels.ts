@@ -14,7 +14,7 @@ type ChannelTint = {
 };
 
 const CHANNEL_TINTS: Record<string, ChannelTint> = {
-  BOOKS_TW: {
+  WUNAN: {
     background: "var(--color-accent-200)",
     text: "var(--color-accent-900)",
     subText: "var(--color-accent-800)",

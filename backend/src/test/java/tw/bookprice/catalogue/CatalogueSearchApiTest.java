@@ -161,7 +161,7 @@ class CatalogueSearchApiTest {
         mockMvc.perform(get("/api/works").param("q", "原子習慣"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.works[0].channelPrices.length()").value(6))
-                .andExpect(jsonPath("$.works[0].channelPrices[0].channel").value("博客來"))
+                .andExpect(jsonPath("$.works[0].channelPrices[0].channel").value("五南文化廣場"))
                 .andExpect(jsonPath("$.works[0].channelPrices[0].price").value(261))
                 .andExpect(jsonPath("$.works[0].channelPrices[0].format").value("PAPER"))
                 .andExpect(jsonPath("$.works[0].channelPrices[4].channel").value("樂天Kobo"))
@@ -186,8 +186,8 @@ class CatalogueSearchApiTest {
         mockMvc.perform(get("/api/channels"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(6))
-                .andExpect(jsonPath("$[0].name").value("博客來"))
-                .andExpect(jsonPath("$[0].kind").value("紙本 / 電子書"))
+                .andExpect(jsonPath("$[0].name").value("五南文化廣場"))
+                .andExpect(jsonPath("$[0].kind").value("紙本"))
                 .andExpect(jsonPath("$[2].name").value("金石堂"))
                 .andExpect(jsonPath("$[2].kind").value("紙本"))
                 .andExpect(jsonPath("$[5].name").value("Readmoo"))
@@ -212,7 +212,7 @@ class CatalogueSearchApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.works[0].channelPrices.length()").value(4))
                 .andExpect(jsonPath("$.works[0].channelCount").value(4))
-                .andExpect(jsonPath("$.works[0].bestPrice.channel").value("博客來"))
+                .andExpect(jsonPath("$.works[0].bestPrice.channel").value("五南文化廣場"))
                 .andExpect(jsonPath("$.works[0].bestPrice.price").value(261))
                 .andExpect(jsonPath("$.works[0].bestPrice.discountLabel").value("79 折"));
     }
