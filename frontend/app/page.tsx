@@ -57,7 +57,6 @@ export default async function Home() {
               style={channelTintStyle(channel.code)}
             >
               <span className={styles.stripName}>{channel.name}</span>
-              <span className={styles.stripKind}>{channel.kind}</span>
             </div>
           ))}
         </section>

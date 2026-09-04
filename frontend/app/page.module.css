@@ -60,11 +60,12 @@
   border: 1px solid var(--color-divider);
 }
 
+/* One line per cell since the 通路 all sell 紙本; the sub-label it used to
+   carry said the same thing five times. Centred now that the cell holds a
+   single line — left-aligned it read as a truncated two-line cell. */
 .stripCell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
   padding: 16px 14px;
+  text-align: center;
   background: var(--tint-bg);
   color: var(--tint-text);
 }
@@ -74,11 +75,6 @@
   font-weight: var(--font-heading-weight);
   font-size: 18px;
   line-height: 1.12;
-}
-
-.stripKind {
-  font-size: 11px;
-  color: var(--tint-sub);
 }
 
 @media (max-width: 860px) {
