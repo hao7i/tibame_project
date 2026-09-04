@@ -36,6 +36,30 @@ spring:
       password: ${ADMIN_PASSWORD:admin1234}
       roles: ADMIN
 
+# 取價設定
+bookprice:
+  pricing:
+    # 誠實表明身分，讓不歡迎這些流量的站方知道要找誰。
+    user-agent: "BookPricePortal/0.1 (+https://github.com/hao7i/tibame_project; contact: thishow1107@gmail.com)"
+    # 同一站台兩次請求之間的最小間隔。
+    min-interval-ms: 1500
+    # 設計稿的「價格每 6 小時更新一次」；窗內的報價不會再去問一次。
+    freshness-hours: 6
+    # 真實取價只開這兩家：robots.txt 允許、商品頁為伺服器端渲染且帶 JSON-LD。
+    # 關掉任一家會退回示意實作，網站仍然可以展示。
+    kingstone:
+      live: true
+    # 讀冊生活暫時關閉即時取價。研究與實測都確認它技術上可行（robots.txt 允許、
+    # 商品頁 JSON-LD 帶 ISBN 與售價，curl 驗證過 260 元），但這台機器的 JDK 信任庫
+    # 無法驗證 taaze.tw 的憑證鏈（PKIX path building failed）——curl 會自動補抓中介
+    # 憑證，Java 不會。
+    #
+    # 正解是把該中介憑證匯入 JDK 的信任庫，而不是關掉憑證驗證：為了一家通路的價格
+    # 就對所有連線停止驗證身分，是拿整個應用程式的傳輸安全去換一個數字。
+    # 匯入之後把這裡改回 true 即可，程式碼不需要任何改動。
+    taaze:
+      live: false
+
 server:
   port: 8080
 

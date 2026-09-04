@@ -60,7 +60,7 @@ class PriceRefreshFailureTest {
     @Test
     @DisplayName("一家失敗不影響其他五家，報表逐通路分開計數")
     void oneFailingChannelDoesNotStopTheOthers() {
-        RefreshReport report = priceRefreshService.refreshAll();
+        RefreshReport report = priceRefreshService.refreshAll(true);
 
         var kingstoneRow = report.channels().stream()
                 .filter(row -> row.channelCode().equals("KINGSTONE"))
@@ -83,7 +83,7 @@ class PriceRefreshFailureTest {
     @Test
     @DisplayName("失敗的通路標記為過期，其餘維持現行，最低價照常算得出來")
     void theFailingChannelIsMarkedStaleAndTheRestAreNot() throws Exception {
-        priceRefreshService.refreshAll();
+        priceRefreshService.refreshAll(true);
 
         mockMvc.perform(get("/api/works/" + ATOMIC_PAPER))
                 .andExpect(status().isOk())
@@ -99,13 +99,13 @@ class PriceRefreshFailureTest {
     @Test
     @DisplayName("下一次成功的取價會清掉失敗標記")
     void aLaterSuccessClearsTheFlag() throws Exception {
-        priceRefreshService.refreshAll();
+        priceRefreshService.refreshAll(true);
 
         // willReturn(...).given(...) rather than given(mock.call()): the latter
         // would invoke the throwing stub that is already in place.
-        willReturn(java.util.Optional.of(new FetchedPrice(275, "現貨")))
+        willReturn(java.util.Optional.of(new FetchedPrice(275, "現貨", null)))
                 .given(kingstone).fetch(anyString());
-        priceRefreshService.refreshAll();
+        priceRefreshService.refreshAll(true);
 
         mockMvc.perform(get("/api/works/" + ATOMIC_PAPER))
                 .andExpect(jsonPath("$.offers[?(@.channelCode == 'KINGSTONE')].stale")

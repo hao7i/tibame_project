@@ -13,6 +13,14 @@ spring:
       ddl-auto: create-drop
     open-in-view: false
 
+# 測試一律不對外連線：真實取價改走示意實作。
+bookprice:
+  pricing:
+    kingstone:
+      live: false
+    taaze:
+      live: false
+
 logging:
   level:
     org.hibernate.SQL: warn

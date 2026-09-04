@@ -56,6 +56,17 @@ public class Offer {
      * true information because of a transient outage. What changes is that the
      * screen may no longer present it as current.
      */
+    /**
+     * The 商品頁 this 售價 was read from, when it came from a real 取價.
+     *
+     * Null for a 示意 報價, which falls back to the 通路 search link. Storing it
+     * is what lets 前往購買 land on the page that actually states this price —
+     * required of a comparison site, and the difference between citing a source
+     * and passing its work off as our own.
+     */
+    @Column(name = "product_url", length = 500)
+    private String productUrl;
+
     @Column(name = "fetch_failed_at")
     private Instant fetchFailedAt;
 
@@ -102,9 +113,14 @@ public class Offer {
      * be a lie about when it was true.
      */
     public void recordFetch(int price, String stockStatus, Instant fetchedAt) {
+        recordFetch(price, stockStatus, fetchedAt, this.productUrl);
+    }
+
+    public void recordFetch(int price, String stockStatus, Instant fetchedAt, String productUrl) {
         this.price = price;
         this.stockStatus = stockStatus;
         this.fetchedAt = fetchedAt;
+        this.productUrl = productUrl;
         // A success clears the previous failure: the 報價 is current again.
         this.fetchFailedAt = null;
     }
@@ -122,6 +138,10 @@ public class Offer {
     /** True when the last 取價 attempt failed and the 售價 is therefore stale. */
     public boolean isFetchFailed() {
         return fetchFailedAt != null;
+    }
+
+    public String getProductUrl() {
+        return productUrl;
     }
 
     public Instant getFetchFailedAt() {

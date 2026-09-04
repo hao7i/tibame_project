@@ -36,18 +36,33 @@ public class PriceRefreshService {
     private final WorkRepository workRepository;
     private final ChannelRepository channelRepository;
     private final List<ChannelPriceProvider> providers;
+    private final java.time.Duration freshness;
 
     public PriceRefreshService(WorkRepository workRepository,
             ChannelRepository channelRepository,
-            List<ChannelPriceProvider> providers) {
+            List<ChannelPriceProvider> providers,
+            @org.springframework.beans.factory.annotation.Value(
+                    "${bookprice.pricing.freshness-hours:6}") long freshnessHours) {
+        this.freshness = java.time.Duration.ofHours(freshnessHours);
         this.workRepository = workRepository;
         this.channelRepository = channelRepository;
         this.providers = List.copyOf(providers);
     }
 
-    /** Re-asks every 通路 for every 報價 it holds, and writes what comes back. */
+    /**
+     * Re-asks every 通路 for the 報價 that are due, and writes what comes back.
+     *
+     * 報價 fetched within the freshness window are skipped. The design promises
+     * 「價格每 6 小時更新一次」, and honouring that is also what keeps this from
+     * asking a shop for the same price on every click. The window lives in the
+     * database rather than in a cache, so it survives a restart — a cache that
+     * empties on deploy would turn every deploy into a burst of traffic at
+     * somebody else site.
+     *
+     * @param force ignore the window, for an operator who needs an answer now
+     */
     @Transactional
-    public RefreshReport refreshAll() {
+    public RefreshReport refreshAll(boolean force) {
         Instant startedAt = Instant.now();
         List<Work> works = workRepository.findAllWithOffers();
 
@@ -66,23 +81,32 @@ public class PriceRefreshService {
                 // A 通路 in the 書目 with nobody to ask is a configuration gap, and
                 // saying so beats reporting a clean run that touched nothing.
                 results.add(new RefreshReport.ChannelResult(
-                        channel.getCode(), channel.getName(), 0, 0, 0,
+                        channel.getCode(), channel.getName(), 0, 0, 0, 0,
                         "沒有對應的取價實作"));
                 continue;
             }
 
-            results.add(refreshChannel(channel, provider, works, startedAt));
+            results.add(refreshChannel(channel, provider, works, startedAt, force));
         }
 
         return new RefreshReport(startedAt, results);
     }
 
+    /** Within the freshness window, so there is nothing to ask about yet. */
+    private boolean isFresh(Offer offer, Instant now) {
+        return !offer.isFetchFailed()
+                && offer.getFetchedAt() != null
+                && offer.getFetchedAt().isAfter(now.minus(freshness));
+    }
+
     private RefreshReport.ChannelResult refreshChannel(Channel channel,
-            ChannelPriceProvider provider, List<Work> works, Instant startedAt) {
+            ChannelPriceProvider provider, List<Work> works, Instant startedAt,
+            boolean force) {
 
         int updated = 0;
         int notFound = 0;
         int failed = 0;
+        int skipped = 0;
         String note = null;
 
         for (Work work : works) {
@@ -92,14 +116,19 @@ public class PriceRefreshService {
                         continue;
                     }
 
+                    if (!force && isFresh(offer, startedAt)) {
+                        skipped++;
+                        continue;
+                    }
+
                     try {
                         Optional<FetchedPrice> fetched = provider.fetch(edition.getIsbn());
                         if (fetched.isEmpty()) {
                             notFound++;
                             continue;
                         }
-                        offer.recordFetch(
-                                fetched.get().price(), fetched.get().stockStatus(), startedAt);
+                        offer.recordFetch(fetched.get().price(), fetched.get().stockStatus(),
+                                startedAt, fetched.get().productUrl());
                         updated++;
                     } catch (RuntimeException cause) {
                         // Marked on the 報價 itself so 單書比價 can show this one
@@ -117,6 +146,6 @@ public class PriceRefreshService {
         }
 
         return new RefreshReport.ChannelResult(
-                channel.getCode(), channel.getName(), updated, notFound, failed, note);
+                channel.getCode(), channel.getName(), updated, notFound, failed, skipped, note);
     }
 }

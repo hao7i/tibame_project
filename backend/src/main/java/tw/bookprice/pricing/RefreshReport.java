@@ -19,6 +19,10 @@ public record RefreshReport(Instant startedAt, List<ChannelResult> channels) {
         return channels.stream().mapToInt(ChannelResult::updated).sum();
     }
 
+    public int totalSkipped() {
+        return channels.stream().mapToInt(ChannelResult::skipped).sum();
+    }
+
     public int totalFailed() {
         return channels.stream().mapToInt(ChannelResult::failed).sum();
     }
@@ -27,6 +31,7 @@ public record RefreshReport(Instant startedAt, List<ChannelResult> channels) {
      * @param updated  報價 whose 售價 and 取價時間 were written
      * @param notFound ISBNs the 通路 does not carry — an answer, not a fault
      * @param failed   attempts that threw; the 通路 could not be read
+     * @param skipped  報價 still inside the freshness window, so not asked about
      * @param note     the first failure message, for the operator to act on
      */
     public record ChannelResult(
@@ -35,6 +40,7 @@ public record RefreshReport(Instant startedAt, List<ChannelResult> channels) {
             int updated,
             int notFound,
             int failed,
+            int skipped,
             String note) {
     }
 }

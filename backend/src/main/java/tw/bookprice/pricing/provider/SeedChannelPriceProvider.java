@@ -32,6 +32,6 @@ public abstract class SeedChannelPriceProvider implements ChannelPriceProvider {
                 .flatMap(edition -> edition.getOffers().stream())
                 .filter(offer -> offer.getChannel().getCode().equals(channelCode()))
                 .findFirst()
-                .map(offer -> new FetchedPrice(offer.getPrice(), offer.getStockStatus()));
+                .map(offer -> FetchedPrice.seeded(offer.getPrice(), offer.getStockStatus()));
     }
 }

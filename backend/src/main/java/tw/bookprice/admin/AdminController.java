@@ -90,8 +90,9 @@ public class AdminController {
      * POST, so a refresh of the browser does not run 取價 a second time.
      */
     @PostMapping("/admin/refresh")
-    public String refresh(RedirectAttributes redirect) {
-        RefreshReport report = priceRefreshService.refreshAll();
+    public String refresh(@RequestParam(defaultValue = "false") boolean force,
+            RedirectAttributes redirect) {
+        RefreshReport report = priceRefreshService.refreshAll(force);
         redirect.addFlashAttribute("report", report);
         return "redirect:/admin";
     }

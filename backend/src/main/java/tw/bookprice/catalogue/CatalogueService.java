@@ -359,7 +359,7 @@ public class CatalogueService {
                 offer.getStockStatus(),
                 offer.getPrice(),
                 discountLabel(percent),
-                offer.getChannel().purchaseUrlFor(edition.getIsbn()),
+                purchaseUrlOf(offer, edition),
                 best,
                 offer.isFetchFailed());
     }
@@ -524,7 +524,21 @@ public class CatalogueService {
                 percent,
                 discountLabel(percent),
                 Math.max(0, workListPrice - offer.getPrice()),
-                offer.getChannel().purchaseUrlFor(edition.getIsbn()));
+                purchaseUrlOf(offer, edition));
+    }
+
+    /**
+     * Where 前往購買 goes.
+     *
+     * The 商品頁 a real 取價 read this price from, when there is one; otherwise the
+     * 通路 search link. Preferring the product page is what makes the price on
+     * screen checkable at its source rather than merely asserted here.
+     */
+    private static String purchaseUrlOf(Offer offer, Edition edition) {
+        String productUrl = offer.getProductUrl();
+        return (productUrl != null && !productUrl.isBlank())
+                ? productUrl
+                : offer.getChannel().purchaseUrlFor(edition.getIsbn());
     }
 
     static int discountPercent(int price, int listPrice) {
