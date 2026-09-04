@@ -20,7 +20,6 @@ import tw.bookprice.seed.CatalogueSeeder;
  *
  * 最低價 is the interesting part: it is computed per request from the 報價 rows
  * rather than stored, so it has to be right across 版本 of both 載體 and right
- * when a 作品 has no 電子書 版本 at all.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -88,16 +87,6 @@ class CatalogueSearchApiTest {
                 .andExpect(jsonPath("$.works[0].title").value("原子習慣"));
     }
 
-    @Test
-    @DisplayName("以電子書版本的 ISBN 搜尋，命中的是同一個作品")
-    void findsSameWorkByEbookIsbn() throws Exception {
-        mockMvc.perform(get("/api/works").param("q", "9789861755274"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(1))
-                .andExpect(jsonPath("$.works[0].title").value("原子習慣"))
-                // 作品 is addressed by its 紙本 ISBN whichever 版本 matched.
-                .andExpect(jsonPath("$.works[0].isbn").value("9789861755267"));
-    }
 
     @Test
     @DisplayName("查無結果回傳空清單，不是退回全部書籍")
@@ -122,22 +111,9 @@ class CatalogueSearchApiTest {
                 .andExpect(jsonPath("$.total").value(0));
     }
 
-    @Test
-    @DisplayName("最低價跨越紙本與電子書兩個版本取最小值")
-    void bestPriceSpansEditionsOfBothFormats() throws Exception {
-        mockMvc.perform(get("/api/works").param("q", "原子習慣"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.works[0].listPrice").value(330))
-                // The cheapest 報價 is the 電子書 one, so 最低價 has to reach across
-                // 版本 rather than stopping at the 紙本 ones.
-                .andExpect(jsonPath("$.works[0].bestPrice.channel").value("Readmoo"))
-                .andExpect(jsonPath("$.works[0].bestPrice.price").value(238))
-                .andExpect(jsonPath("$.works[0].bestPrice.discountPercent").value(72))
-                .andExpect(jsonPath("$.works[0].bestPrice.discountLabel").value("72 折"));
-    }
 
     @Test
-    @DisplayName("作品沒有電子書版本時，最低價來自紙本報價")
+    @DisplayName("最低價來自各通路報價中最低的一筆")
     void bestPriceFallsToPaperWhenWorkHasNoEbookEdition() throws Exception {
         mockMvc.perform(get("/api/works").param("q", "設計的設計"))
                 .andExpect(status().isOk())
@@ -153,7 +129,7 @@ class CatalogueSearchApiTest {
     void channelCountCountsChannelsHoldingAnOffer() throws Exception {
         mockMvc.perform(get("/api/works").param("q", "如何閱讀一本書"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.works[0].channelCount").value(5));
+                .andExpect(jsonPath("$.works[0].channelCount").value(4));
     }
 
     @Test
@@ -161,14 +137,10 @@ class CatalogueSearchApiTest {
     void returnsEveryChannelPriceRatherThanATruncatedList() throws Exception {
         mockMvc.perform(get("/api/works").param("q", "原子習慣"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.works[0].channelPrices.length()").value(6))
+                .andExpect(jsonPath("$.works[0].channelPrices.length()").value(5))
                 .andExpect(jsonPath("$.works[0].channelPrices[0].channel").value("五南文化廣場"))
                 .andExpect(jsonPath("$.works[0].channelPrices[0].price").value(261))
-                .andExpect(jsonPath("$.works[0].channelPrices[0].format").value("PAPER"))
-                .andExpect(jsonPath("$.works[0].channelPrices[4].channel").value("墊腳石"))
-                .andExpect(jsonPath("$.works[0].channelPrices[4].format").value("PAPER"))
-                .andExpect(jsonPath("$.works[0].channelPrices[5].channel").value("Readmoo"))
-                .andExpect(jsonPath("$.works[0].channelPrices[5].format").value("EBOOK"));
+                .andExpect(jsonPath("$.works[0].channelPrices[4].channel").value("墊腳石"));
     }
 
     @Test
@@ -188,26 +160,14 @@ class CatalogueSearchApiTest {
     void listsTheSixChannelsInDisplayOrder() throws Exception {
         mockMvc.perform(get("/api/channels"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(6))
+                .andExpect(jsonPath("$.length()").value(5))
                 .andExpect(jsonPath("$[0].name").value("五南文化廣場"))
                 .andExpect(jsonPath("$[0].kind").value("紙本"))
                 .andExpect(jsonPath("$[2].name").value("金石堂"))
                 .andExpect(jsonPath("$[2].kind").value("紙本"))
-                .andExpect(jsonPath("$[5].name").value("Readmoo"))
-                .andExpect(jsonPath("$[5].kind").value("電子書"));
+                .andExpect(jsonPath("$[4].name").value("墊腳石"));
     }
 
-    @Test
-    @DisplayName("限定電子書時，最低價與通路只看電子書版本的報價")
-    void ebookFilterNarrowsOffersToTheEbookEdition() throws Exception {
-        mockMvc.perform(get("/api/works").param("q", "原子習慣").param("format", "EBOOK"))
-                .andExpect(status().isOk())
-                // Readmoo is the only 電子書 通路 left.
-                .andExpect(jsonPath("$.works[0].channelPrices.length()").value(1))
-                .andExpect(jsonPath("$.works[0].channelCount").value(1))
-                .andExpect(jsonPath("$.works[0].bestPrice.channel").value("Readmoo"))
-                .andExpect(jsonPath("$.works[0].bestPrice.price").value(238));
-    }
 
     @Test
     @DisplayName("限定紙本時，最低價改由最便宜的紙本通路出線")
@@ -222,17 +182,6 @@ class CatalogueSearchApiTest {
                 .andExpect(jsonPath("$.works[0].bestPrice.discountLabel").value("79 折"));
     }
 
-    @Test
-    @DisplayName("限定電子書時，沒有電子書報價的作品不出現在結果中")
-    void ebookFilterDropsWorksWithNoEbookOffer() throws Exception {
-        mockMvc.perform(get("/api/works").param("format", "EBOOK"))
-                .andExpect(status().isOk())
-                // 設計的設計 has no 電子書 報價, so five of the six remain.
-                .andExpect(jsonPath("$.total").value(5))
-                .andExpect(jsonPath("$.works[*].title")
-                        .value(org.hamcrest.Matchers.not(
-                                org.hamcrest.Matchers.hasItem("設計的設計"))));
-    }
 
     @Test
     @DisplayName("載體參數留空等同全部版本，因為 GET 表單一定會送出這個欄位")
@@ -242,12 +191,4 @@ class CatalogueSearchApiTest {
                 .andExpect(jsonPath("$.total").value(6));
     }
 
-    @Test
-    @DisplayName("載體參數給了不認得的值回 400 與一致的錯誤主體")
-    void unknownFormatIsRejected() throws Exception {
-        mockMvc.perform(get("/api/works").param("format", "AUDIOBOOK"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error.code").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.error.message").value("不支援的載體: AUDIOBOOK"));
-    }
 }

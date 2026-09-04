@@ -9,17 +9,10 @@ import styles from "./SearchForm.module.css";
  * It is a plain GET form, so 搜尋 works with no client JavaScript at all and the
  * resulting URL is the whole state — which is what the results screen reads.
  */
-const FORMAT_OPTIONS = [
-  { label: "全部版本", value: "" },
-  { label: "紙本書", value: "PAPER" },
-  { label: "電子書", value: "EBOOK" },
-];
-
 type SearchFormProps = {
-  /** hero = 首頁 band with the 載體 switcher; bar = the row above 搜尋結果. */
+  /** hero = 首頁 band; bar = the row above 搜尋結果. */
   variant: "hero" | "bar";
   query?: string;
-  format?: string;
   /** Active 篩選條件, carried through a new 搜尋 from the results bar. */
   filters?: {
     channels?: string[];
@@ -30,12 +23,7 @@ type SearchFormProps = {
   };
 };
 
-export function SearchForm({
-  variant,
-  query = "",
-  format = "",
-  filters,
-}: SearchFormProps) {
+export function SearchForm({ variant, query = "", filters }: SearchFormProps) {
   const isHero = variant === "hero";
 
   return (
@@ -45,26 +33,11 @@ export function SearchForm({
       className={isHero ? styles.hero : styles.bar}
       role="search"
     >
-      {isHero ? (
-        <div className={`seg ${styles.formats}`}>
-          {FORMAT_OPTIONS.map((option) => (
-            <label key={option.label} className="seg-opt">
-              <input
-                type="radio"
-                name="format"
-                value={option.value}
-                defaultChecked={option.value === format}
-              />
-              {option.label}
-            </label>
-          ))}
-        </div>
-      ) : (
+      {isHero ? null : (
         <>
-          {/* The bar has no 載體 switcher and no 篩選條件 of its own, so it carries
-              both forward. Without this a new 搜尋 would silently clear the rail
-              and the chips; the design only calls for 分頁 to reset. */}
-          <input type="hidden" name="format" value={format} />
+          {/* The bar has no 篩選條件 of its own, so it carries them forward.
+              Without this a new 搜尋 would silently clear the rail and the
+              chips; the design only calls for 分頁 to reset. */}
           {(filters?.channels ?? []).map((code) => (
             <input key={`channel-${code}`} type="hidden" name="channel" value={code} />
           ))}

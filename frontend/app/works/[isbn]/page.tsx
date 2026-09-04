@@ -10,13 +10,6 @@ import { WatchToggle } from "@/components/WatchToggle";
 import { DropNotificationCard } from "./DropNotificationCard";
 import styles from "./work.module.css";
 
-/** 版本 switcher. The empty value is 全部版本. */
-const FORMAT_TABS = [
-  { label: "全部版本", value: "" },
-  { label: "紙本書", value: "PAPER" },
-  { label: "電子書", value: "EBOOK" },
-];
-
 const SORT_TABS = [
   { label: "價格低→高", value: "PRICE" },
   { label: "依通路", value: "CHANNEL" },
@@ -30,16 +23,15 @@ type WorkPageProps = {
 export default async function WorkPage({ params, searchParams }: WorkPageProps) {
   const { isbn } = await params;
   const query = await searchParams;
-  const format = firstValue(query.format) ?? "";
   const sort = firstValue(query.sort) ?? "PRICE";
 
-  const work = await fetchWorkDetail(isbn, format, sort);
+  const work = await fetchWorkDetail(isbn, sort);
   if (!work) {
     notFound();
   }
 
   // 追蹤 state is read per 作品, addressed by the canonical ISBN the response
-  // carries rather than the one in the URL — either 版本 ISBN reaches this page,
+  // carries rather than the one in the URL, so the two agree.
   // and both must show the same 追蹤中.
   const member = await currentMember();
   const watchItem = member
@@ -80,27 +72,21 @@ export default async function WorkPage({ params, searchParams }: WorkPageProps) 
             <h4 className={styles.tableTitle}>各通路報價</h4>
             <div className={styles.switches}>
               <TabGroup
-                tabs={FORMAT_TABS}
-                current={format}
-                hrefFor={(value) => hrefFor(work.isbn, value, sort)}
-              />
-              <TabGroup
                 tabs={SORT_TABS}
                 current={sort}
-                hrefFor={(value) => hrefFor(work.isbn, format, value)}
+                hrefFor={(value) => hrefFor(work.isbn, value)}
               />
             </div>
           </div>
 
           {work.offers.length === 0 ? (
-            <p className={styles.noOffers}>這個載體目前沒有任何通路的報價。</p>
+            <p className={styles.noOffers}>目前沒有任何通路的報價。</p>
           ) : (
             <div className={styles.tableScroll}>
               <table className={`table ${styles.offerTable}`}>
                 <thead>
                   <tr>
                     <th>通路</th>
-                    <th>版本</th>
                     <th>庫存／到貨</th>
                     <th className={styles.numeric}>折扣</th>
                     <th className={styles.numeric}>售價</th>
@@ -109,7 +95,7 @@ export default async function WorkPage({ params, searchParams }: WorkPageProps) 
                 </thead>
                 <tbody>
                   {work.offers.map((offer) => (
-                    <OfferRow key={`${offer.channelCode}-${offer.format}`} offer={offer} />
+                    <OfferRow key={offer.channelCode} offer={offer} />
                   ))}
                 </tbody>
               </table>
@@ -155,7 +141,6 @@ function OfferRow({ offer }: { offer: OfferView }) {
           {offer.stale ? <span className="tag tag-neutral">取價失敗</span> : null}
         </span>
       </td>
-      <td>{offer.formatLabel}</td>
       <td className={styles.muted}>
         {offer.stale ? "暫時無法取得" : offer.stockStatus}
       </td>
@@ -195,7 +180,7 @@ function BestPriceCard({ work, watched }: { work: WorkDetail; watched: boolean }
           />
         </>
       ) : (
-        <p className="card-body">這個載體目前沒有報價可以比較。</p>
+        <p className="card-body">目前沒有報價可以比較。</p>
       )}
 
       <WatchToggle
@@ -269,11 +254,8 @@ function TabGroup({
   );
 }
 
-function hrefFor(isbn: string, format: string, sort: string): string {
+function hrefFor(isbn: string, sort: string): string {
   const params = new URLSearchParams();
-  if (format) {
-    params.set("format", format);
-  }
   if (sort && sort !== "PRICE") {
     params.set("sort", sort);
   }

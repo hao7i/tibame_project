@@ -12,13 +12,12 @@
   <table>
     <thead>
       <tr>
-        <th>版本</th><th>ISBN</th><th>通路</th>
+<th>ISBN</th><th>通路</th>
         <th class="num">售價</th><th>庫存／到貨</th><th>取價時間</th><th></th>
       </tr>
     </thead>
     <tbody>
       <tr th:each="offer : ${offers}">
-        <td th:text="${offer.formatLabel()}">紙本平裝</td>
         <td class="muted" th:text="${offer.isbn()}">ISBN</td>
         <td th:text="${offer.channelName()}">通路</td>
         <td colspan="3">

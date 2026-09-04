@@ -11,7 +11,6 @@ import java.util.List;
  * narrow in series, since every condition here is ANDed against the others.
  *
  * @param query      搜尋 term, or null/blank for 全部收錄書籍
- * @param format     載體 to narrow to, or null/blank for 全部版本
  * @param channels   通路 codes; OR within this group, AND against the others.
  *                   Narrows the 報價 that 最低價 is computed from, so it changes
  *                   prices rather than only hiding rows.
@@ -25,7 +24,6 @@ import java.util.List;
  */
 public record WorkSearchQuery(
         String query,
-        String format,
         List<String> channels,
         List<String> categories,
         Integer minPrice,

@@ -11,9 +11,9 @@ export const PRICE_CEILING = { min: 150, max: 700, step: 10 };
 /**
  * 呈現方式 — 列表 / 卡片 / 表格.
  *
- * The URL carries the ASCII value while the UI shows the 中文 label, the same
- * split 載體 uses (PAPER ↔ 紙本書): the query string stays readable and a label
- * can be reworded without breaking a link someone already shared.
+ * The URL carries the ASCII value while the UI shows the 中文 label, so the
+ * query string stays readable and a label can be reworded without breaking a
+ * link someone already shared.
  */
 export const VIEWS = [
   { value: "list", label: "列表" },

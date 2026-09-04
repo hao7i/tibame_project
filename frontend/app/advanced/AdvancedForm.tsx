@@ -8,7 +8,6 @@ import type { Channel } from "@/lib/api";
 import {
   BOOLEAN_OPS,
   EMPTY_ADVANCED,
-  FORMATS,
   SEARCH_FIELDS,
   YEARS,
   advancedToParams,
@@ -152,24 +151,6 @@ export function AdvancedForm({ channels }: { channels: Channel[] }) {
           </div>
         </div>
 
-        <div className={styles.group}>
-          <p className={styles.groupLabel}>版本</p>
-          <div className={styles.formats}>
-            {FORMATS.map((option) => (
-              <label key={option.label} className="radio">
-                <input
-                  type="radio"
-                  name="format"
-                  value={option.value}
-                  checked={conditions.format === option.value}
-                  onChange={() => update({ format: option.value })}
-                />
-                <span className="dot" aria-hidden="true" />
-                {option.label}
-              </label>
-            ))}
-          </div>
-        </div>
 
         <div className={styles.actions}>
           <button type="submit" className={`btn btn-primary blueprint ${styles.run}`}>

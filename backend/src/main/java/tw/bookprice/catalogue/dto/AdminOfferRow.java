@@ -6,7 +6,6 @@ import java.time.Instant;
 public record AdminOfferRow(
         Long id,
         String isbn,
-        String formatLabel,
         String channelName,
         String channelCode,
         int price,

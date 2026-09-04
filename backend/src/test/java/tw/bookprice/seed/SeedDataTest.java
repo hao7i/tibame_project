@@ -50,17 +50,6 @@ class SeedDataTest {
                         .isTrue());
     }
 
-    @Test
-    @DisplayName("同一作品的紙本與電子書是兩個不同的版本，各有自己的 ISBN")
-    void paperAndEbookAreDistinctEditionsOfOneWork() {
-        Work atomicHabits = workRepository.findByEditionIsbn("9789861755267").orElseThrow();
-
-        assertThat(atomicHabits.getEditions())
-                .extracting(Edition::getFormat, Edition::getIsbn)
-                .containsExactlyInAnyOrder(
-                        tuple(Format.PAPER, "9789861755267"),
-                        tuple(Format.EBOOK, "9789861755274"));
-    }
 
     @Test
     @DisplayName("沒有電子書報價的作品不會被硬生出一個電子書版本")

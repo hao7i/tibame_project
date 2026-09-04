@@ -3,6 +3,7 @@ package tw.bookprice.seed;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -87,11 +88,42 @@ public class CatalogueSeeder {
             if (!ChannelMigration.RETIRED_CODES.contains(channel.getCode())) {
                 continue;
             }
-            CHANNELS.stream()
+
+            Optional<ChannelSpec> replacement = CHANNELS.stream()
                     .filter(spec -> spec.displayOrder() == channel.getDisplayOrder())
-                    .findFirst()
-                    .ifPresent(spec -> channel.replaceWith(
-                            spec.code(), spec.name(), spec.kind(), spec.searchUrlTemplate()));
+                    .findFirst();
+
+            if (replacement.isPresent()) {
+                ChannelSpec spec = replacement.get();
+                channel.replaceWith(
+                        spec.code(), spec.name(), spec.kind(), spec.searchUrlTemplate());
+            } else {
+                // Nothing took its slot: the 通路 was dropped, not replaced.
+                // Readmoo went this way when 電子書 比價 was removed — it was the
+                // last 電子書 通路 and blocks this crawler in robots.txt, so it
+                // could never have carried a real price anyway.
+                channelRepository.delete(channel);
+            }
+        }
+    }
+
+    /**
+     * Drop the 電子書 版本 an earlier seed created.
+     *
+     * The site compares 紙本 only now. Those 版本 carried ISBNs this project
+     * synthesised rather than took from a registry, so they address nothing real
+     * and no 取價 could ever answer for them. Removing the 版本 removes its 報價
+     * with it, which is what the cascade is for.
+     */
+    private void removeNonPaperEditions() {
+        for (Work work : workRepository.findAllWithOffers()) {
+            List<Edition> stale = work.getEditions().stream()
+                    .filter(edition -> edition.getFormat() != Format.PAPER)
+                    .toList();
+            if (!stale.isEmpty()) {
+                work.getEditions().removeAll(stale);
+                workRepository.save(work);
+            }
         }
     }
 
@@ -114,12 +146,7 @@ public class CatalogueSeeder {
                 if (!offerSpec.channelCode().equals(channel.getCode())) {
                     continue;
                 }
-                String isbn = (offerSpec.format() == Format.EBOOK)
-                        ? spec.ebookIsbn()
-                        : spec.paperIsbn();
-                if (isbn == null) {
-                    continue;
-                }
+                String isbn = spec.paperIsbn();
                 addOfferIfMissing(channel, isbn, offerSpec);
             }
         }
@@ -142,6 +169,7 @@ public class CatalogueSeeder {
 
     private Map<String, Channel> seedChannels() {
         migrateReplacedChannels();
+        removeNonPaperEditions();
 
         if (channelRepository.count() == 0) {
             channelRepository.saveAll(CHANNELS.stream()
@@ -181,26 +209,12 @@ public class CatalogueSeeder {
                 spec.paperIsbn(), Format.PAPER, spec.paperLabel(), spec.listPrice());
         work.addEdition(paper);
 
-        // The 電子書 版本 keeps the 定價 of the 紙本 one: the prototype computes its
-        // 電子書 折扣 against that same figure, and copying it keeps those labels right.
-        Edition ebook = null;
-        if (spec.ebookIsbn() != null) {
-            ebook = new Edition(
-                    spec.ebookIsbn(), Format.EBOOK, spec.ebookLabel(), spec.listPrice());
-            work.addEdition(ebook);
-        }
-
         for (OfferSpec offer : spec.offers()) {
-            Edition edition = (offer.format() == Format.EBOOK) ? ebook : paper;
-            if (edition == null) {
-                throw new IllegalStateException(
-                        "報價指向不存在的版本: " + spec.title() + " / " + offer.channelCode());
-            }
             Channel channel = channels.get(offer.channelCode());
             if (channel == null) {
                 throw new IllegalStateException("報價指向不存在的通路: " + offer.channelCode());
             }
-            edition.addOffer(new Offer(channel, offer.price(), offer.stock(), fetchedAt));
+            paper.addOffer(new Offer(channel, offer.price(), offer.stock(), fetchedAt));
         }
 
         return work;
@@ -210,14 +224,13 @@ public class CatalogueSeeder {
             String searchUrlTemplate) {
     }
 
-    private record OfferSpec(String channelCode, Format format, int price, String stock) {
+    private record OfferSpec(String channelCode, int price, String stock) {
     }
 
     private record WorkSpec(
             String title, String author, String publisher, int publicationYear,
             String category, int listPrice, String blurb,
             String paperIsbn, String paperLabel,
-            String ebookIsbn, String ebookLabel,
             List<OfferSpec> offers) {
     }
 
@@ -226,7 +239,6 @@ public class CatalogueSeeder {
     private static final String KINGSTONE = "KINGSTONE";
     private static final String TAAZE = "TAAZE";
     private static final String TCSB = "TCSB";
-    private static final String READMOO = "READMOO";
 
     /**
      * 前往購買 targets, per docs/research/book-price-channel-data-sources.md.
@@ -260,86 +272,68 @@ public class CatalogueSeeder {
             new ChannelSpec(TAAZE, "讀冊生活", "紙本", 3,
                     "https://www.taaze.tw/rwd_searchResult.html?keyType%5B%5D=0&keyword%5B%5D={isbn}"),
             new ChannelSpec(TCSB, "墊腳石", "紙本", 4,
-                    "https://www.tcsb.com.tw/{isbn}"),
-            new ChannelSpec(READMOO, "Readmoo", "電子書", 5,
-                    "https://readmoo.com/"));
-
-    private static final String EBOOK_LABEL = "電子書 EPUB";
+                    "https://www.tcsb.com.tw/{isbn}"));
 
     /**
-     * The 電子書 ISBNs are synthesised, since the prototype has none: the 12th digit
-     * of the 紙本 ISBN is stepped by one and the check digit recomputed. They are
-     * valid ISBN-13 numbers but they are not real registrations, which is of a
-     * piece with the 售價 above them being 示意資料. SeedDataTest checks the digits.
+     * 售價 are 示意資料 copied from the design prototype, and every one of them is
+     * replaced the first time 取價 runs against the 通路 that publishes it.
      */
     private static final List<WorkSpec> WORKS = List.of(
             new WorkSpec("原子習慣", "James Clear", "方智", 2019, "心理勵志", 330,
                     "從細微改變累積成長的行為設計方法，說明習慣如何形成、如何替換，以及環境對行為的影響。",
                     "9789861755267", "紙本平裝",
-                    "9789861755274", EBOOK_LABEL,
                     List.of(
-                            new OfferSpec(WUNAN, Format.PAPER, 261, "24 小時到貨"),
-                            new OfferSpec(SANMIN, Format.PAPER, 264, "3-5 個工作日"),
-                            new OfferSpec(KINGSTONE, Format.PAPER, 280, "庫存有限"),
-                            new OfferSpec(TAAZE, Format.PAPER, 271, "3-5 個工作日"),
-                            new OfferSpec(TCSB, Format.PAPER, 261, "有貨"),
-                            new OfferSpec(READMOO, Format.EBOOK, 238, "立即下載"))),
+                            new OfferSpec(WUNAN, 261, "24 小時到貨"),
+                            new OfferSpec(SANMIN, 264, "3-5 個工作日"),
+                            new OfferSpec(KINGSTONE, 280, "庫存有限"),
+                            new OfferSpec(TAAZE, 271, "3-5 個工作日"),
+                            new OfferSpec(TCSB, 261, "有貨"))),
 
             new WorkSpec("人類大歷史", "Yuval Noah Harari", "天下文化", 2018, "人文史地", 480,
                     "從認知革命到科學革命，重述人類作為一個物種如何改變地球與自身的敘事。",
                     // The prototype writes 9789864792916, whose check digit is wrong;
                     // corrected to 7 so every ISBN in the catalogue is a valid ISBN-13.
                     "9789864792917", "紙本精裝",
-                    "9789864792924", EBOOK_LABEL,
                     List.of(
-                            new OfferSpec(WUNAN, Format.PAPER, 379, "24 小時到貨"),
-                            new OfferSpec(SANMIN, Format.PAPER, 384, "3-5 個工作日"),
-                            new OfferSpec(KINGSTONE, Format.PAPER, 408, "現貨"),
-                            new OfferSpec(TAAZE, Format.PAPER, 394, "3-5 個工作日"),
-                            new OfferSpec(READMOO, Format.EBOOK, 340, "立即下載"))),
+                            new OfferSpec(WUNAN, 379, "24 小時到貨"),
+                            new OfferSpec(SANMIN, 384, "3-5 個工作日"),
+                            new OfferSpec(KINGSTONE, 408, "現貨"),
+                            new OfferSpec(TAAZE, 394, "3-5 個工作日"))),
 
             new WorkSpec("被討厭的勇氣", "岸見一郎、古賀史健", "究竟", 2014, "心理勵志", 300,
                     "以對話形式介紹阿德勒心理學的核心概念：課題分離、目的論與人際關係的距離。",
                     "9789861371955", "紙本平裝",
-                    "9789861371962", EBOOK_LABEL,
                     List.of(
-                            new OfferSpec(WUNAN, Format.PAPER, 237, "24 小時到貨"),
-                            new OfferSpec(SANMIN, Format.PAPER, 240, "3-5 個工作日"),
-                            new OfferSpec(KINGSTONE, Format.PAPER, 255, "現貨"),
-                            new OfferSpec(TAAZE, Format.PAPER, 246, "3-5 個工作日"),
-                            new OfferSpec(TCSB, Format.PAPER, 237, "有貨"),
-                            new OfferSpec(READMOO, Format.EBOOK, 213, "立即下載"))),
+                            new OfferSpec(WUNAN, 237, "24 小時到貨"),
+                            new OfferSpec(SANMIN, 240, "3-5 個工作日"),
+                            new OfferSpec(KINGSTONE, 255, "現貨"),
+                            new OfferSpec(TAAZE, 246, "3-5 個工作日"),
+                            new OfferSpec(TCSB, 237, "有貨"))),
 
             new WorkSpec("正義：一場思辨之旅", "Michael J. Sandel", "先覺", 2018, "人文史地", 420,
                     "以電車難題等案例貫穿功利主義、自由至上主義與德性論的論證與彼此的衝突。",
                     "9789861343181", "紙本平裝",
-                    "9789861343198", EBOOK_LABEL,
                     List.of(
-                            new OfferSpec(WUNAN, Format.PAPER, 332, "24 小時到貨"),
-                            new OfferSpec(SANMIN, Format.PAPER, 336, "3-5 個工作日"),
-                            new OfferSpec(KINGSTONE, Format.PAPER, 357, "訂購後 5 日"),
-                            new OfferSpec(TAAZE, Format.PAPER, 344, "3-5 個工作日"),
-                            new OfferSpec(READMOO, Format.EBOOK, 298, "立即下載"))),
+                            new OfferSpec(WUNAN, 332, "24 小時到貨"),
+                            new OfferSpec(SANMIN, 336, "3-5 個工作日"),
+                            new OfferSpec(KINGSTONE, 357, "訂購後 5 日"),
+                            new OfferSpec(TAAZE, 344, "3-5 個工作日"))),
 
             new WorkSpec("如何閱讀一本書", "Mortimer J. Adler", "台灣商務", 2003, "人文史地", 500,
                     "將閱讀分為四個層次，說明檢視閱讀與分析閱讀的具體步驟與筆記方法。",
                     "9789570517989", "紙本平裝",
-                    "9789570517996", EBOOK_LABEL,
                     List.of(
-                            new OfferSpec(WUNAN, Format.PAPER, 395, "7 日內到貨"),
-                            new OfferSpec(SANMIN, Format.PAPER, 400, "3-5 個工作日"),
-                            new OfferSpec(KINGSTONE, Format.PAPER, 425, "現貨"),
-                            new OfferSpec(TAAZE, Format.PAPER, 410, "3-5 個工作日"),
-                            new OfferSpec(READMOO, Format.EBOOK, 350, "立即下載"))),
+                            new OfferSpec(WUNAN, 395, "7 日內到貨"),
+                            new OfferSpec(SANMIN, 400, "3-5 個工作日"),
+                            new OfferSpec(KINGSTONE, 425, "現貨"),
+                            new OfferSpec(TAAZE, 410, "3-5 個工作日"))),
 
-            // No 電子書 報價 in the prototype, so no 電子書 版本 is invented for it.
             new WorkSpec("設計的設計", "原研哉", "磐築創意", 2011, "藝術設計", 600,
                     "以 RE-DESIGN 展覽為軸，討論設計如何從既有事物中重新發現使用的本質。",
                     "9789866637155", "紙本平裝",
-                    null, null,
                     List.of(
-                            new OfferSpec(WUNAN, Format.PAPER, 504, "7 日內到貨"),
-                            new OfferSpec(SANMIN, Format.PAPER, 510, "3-5 個工作日"),
-                            new OfferSpec(KINGSTONE, Format.PAPER, 540, "訂購後 5 日"),
-                            new OfferSpec(TAAZE, Format.PAPER, 492, "3-5 個工作日"))));
+                            new OfferSpec(WUNAN, 504, "7 日內到貨"),
+                            new OfferSpec(SANMIN, 510, "3-5 個工作日"),
+                            new OfferSpec(KINGSTONE, 540, "訂購後 5 日"),
+                            new OfferSpec(TAAZE, 492, "3-5 個工作日"))));
 }

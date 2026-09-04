@@ -8,9 +8,9 @@ import type { Channel } from "@/lib/api";
  * conditions, and if they were written separately the preview could promise a
  * search the results page never ran.
  *
- * The UI shows 中文 labels (書名, 電子書, 金石堂) while the URL carries the codes
- * the API understands (title, EBOOK, KINGSTONE) — the same split 載體 already
- * uses elsewhere.
+ * The UI shows 中文 labels (書名, 金石堂) while the URL carries the codes the API
+ * understands (title, KINGSTONE), so a label can be reworded without breaking a
+ * link someone already shared.
  */
 
 /** 搜尋欄位, in the order the design lists them. */
@@ -24,12 +24,6 @@ export const SEARCH_FIELDS = [
 ] as const;
 
 export const BOOLEAN_OPS = ["AND", "OR", "NOT"] as const;
-
-export const FORMATS = [
-  { value: "", label: "全部版本" },
-  { value: "PAPER", label: "紙本書" },
-  { value: "EBOOK", label: "電子書" },
-] as const;
 
 /** 「2024 或更早」 is written with a trailing dash, which the API reads as ≤. */
 export const YEARS = [
@@ -49,7 +43,6 @@ export type AdvancedConditions = {
   maxPrice: string;
   year: string;
   channels: string[];
-  format: string;
 };
 
 export const EMPTY_ADVANCED: AdvancedConditions = {
@@ -62,7 +55,6 @@ export const EMPTY_ADVANCED: AdvancedConditions = {
   maxPrice: "",
   year: "",
   channels: [],
-  format: "",
 };
 
 function labelOf(
@@ -110,9 +102,6 @@ export function previewQuery(
     );
     query += ` AND shop:(${names.join(" OR ")})`;
   }
-  if (conditions.format) {
-    query += ` AND format:"${labelOf(FORMATS, conditions.format)}"`;
-  }
 
   return query;
 }
@@ -148,9 +137,6 @@ export function advancedToParams(
   }
   if (conditions.year) {
     params.set("year", conditions.year);
-  }
-  if (conditions.format) {
-    params.set("format", conditions.format);
   }
 
   // Kept in the 通路 order the rest of the site presents, not in click order,

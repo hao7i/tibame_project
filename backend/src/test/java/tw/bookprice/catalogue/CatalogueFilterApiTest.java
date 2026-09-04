@@ -57,11 +57,11 @@ class CatalogueFilterApiTest {
         mockMvc.perform(get("/api/works")
                         .param("q", "原子習慣")
                         .param("channel", "TCSB")
-                        .param("channel", "READMOO"))
+                        .param("channel", "WUNAN"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.works[0].channelCount").value(2))
-                // 墊腳石 261 紙本 vs Readmoo 238 電子書 — 兩家之中較低的那個。
-                .andExpect(jsonPath("$.works[0].bestPrice.price").value(238));
+                // 墊腳石 and 五南 both ask 261 — the tie goes to the earlier 通路.
+                .andExpect(jsonPath("$.works[0].bestPrice.price").value(261));
     }
 
     @Test
@@ -100,10 +100,10 @@ class CatalogueFilterApiTest {
     @Test
     @DisplayName("價格上限過濾的是算出來的最低價")
     void priceCeilingFiltersOnTheComputedBestPrice() throws Exception {
+        // 被討厭的勇氣 最低價 237; 原子習慣 261 已在上限之外。
         mockMvc.perform(get("/api/works").param("maxPrice", "250"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(2))
-                .andExpect(jsonPath("$.works[*].title").value(hasItem("原子習慣")))
+                .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.works[*].title").value(hasItem("被討厭的勇氣")));
     }
 
@@ -164,17 +164,12 @@ class CatalogueFilterApiTest {
     void facetCountsAreCatalogueWideTotals() throws Exception {
         mockMvc.perform(get("/api/facets"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.channels.length()").value(6))
+                .andExpect(jsonPath("$.channels.length()").value(5))
                 .andExpect(jsonPath("$.channels[0].code").value("WUNAN"))
                 .andExpect(jsonPath("$.channels[0].count").value(6))
-                // 墊腳石 stocks two of the six 作品, Readmoo five.
+                // 墊腳石 stocks two of the six 作品.
                 .andExpect(jsonPath("$.channels[4].code").value("TCSB"))
                 .andExpect(jsonPath("$.channels[4].count").value(2))
-                // Readmoo is the only 電子書 通路 left, so it is the one that may
-                // still show a count here.
-                .andExpect(jsonPath("$.channels[5].code").value("READMOO"))
-                .andExpect(jsonPath("$.channels[5].count").value(5))
-                .andExpect(jsonPath("$.channels[5].count").value(5))
                 .andExpect(jsonPath("$.categories.length()").value(3))
                 .andExpect(jsonPath("$.categories[?(@.name == '心理勵志')].count")
                         .value(hasItem(2)))
@@ -184,28 +179,6 @@ class CatalogueFilterApiTest {
                         .value(hasItem(1)));
     }
 
-    @Test
-    @DisplayName("facet 筆數會扣掉賣不了該載體的通路，避免點了必然沒結果")
-    void facetCountsRespectTheActiveFormat() throws Exception {
-        // 金石堂, 讀冊生活 and 墊腳石 are 紙本-only; advertising a count under 電子書
-        // would offer the reader a tick that can only ever return nothing.
-        mockMvc.perform(get("/api/facets").param("format", "EBOOK"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.channels[2].code").value("KINGSTONE"))
-                .andExpect(jsonPath("$.channels[2].count").value(0))
-                .andExpect(jsonPath("$.channels[3].code").value("TAAZE"))
-                .andExpect(jsonPath("$.channels[3].count").value(0))
-                .andExpect(jsonPath("$.channels[4].code").value("TCSB"))
-                .andExpect(jsonPath("$.channels[4].count").value(0))
-                // 設計的設計 is the only 藝術設計 作品 and has no 電子書 版本, so that
-                // row stays on the rail reading 0 rather than vanishing — a row
-                // that disappears reads as though the 分類 never existed.
-                .andExpect(jsonPath("$.categories.length()").value(3))
-                .andExpect(jsonPath("$.categories[?(@.name == '藝術設計')].count")
-                        .value(hasItem(0)))
-                .andExpect(jsonPath("$.categories[?(@.name == '心理勵志')].count")
-                        .value(hasItem(2)));
-    }
 
     @Test
     @DisplayName("非數字的頁碼回 400，不是 500")

@@ -14,14 +14,11 @@ export type Member = {
   email: string;
 };
 
-/** 載體 — the two publication media the site covers. */
-export type Format = "PAPER" | "EBOOK";
 
 export type ChannelPrice = {
   channel: string;
   channelCode: string;
   price: number;
-  format: Format;
 };
 
 /** 最低價 under whatever filters are active, always computed by the backend. */
@@ -42,8 +39,6 @@ export type BestPrice = {
 export type OfferView = {
   channel: string;
   channelCode: string;
-  format: Format;
-  formatLabel: string;
   stockStatus: string;
   price: number;
   discountLabel?: string;
@@ -68,7 +63,7 @@ export type WorkDetail = {
   listPrice: number;
   channelCount: number;
   fetchedAt?: string;
-  /** Absent when no 報價 survives the 載體 filter. */
+  /** Absent when the 作品 has no 報價 at all. */
   bestPrice?: BestPrice;
   offers: OfferView[];
 };
@@ -102,7 +97,7 @@ export type SearchResponse = {
 
 /**
  * 篩選條件 options with counts that ignore the 搜尋 term and the other facets,
- * but do respect the active 載體 — hence their own endpoint.
+ * — hence their own endpoint.
  */
 export type Facets = {
   channels: { code: string; name: string; count: number }[];
@@ -131,8 +126,6 @@ async function getJson<T>(path: string): Promise<T> {
 export type WorkSearchParams = {
   /** omit for 全部收錄書籍 */
   q?: string;
-  /** 載體; omit for 全部版本 */
-  format?: string;
   /** 通路 codes; OR within the group */
   channel?: string[];
   /** 分類 names; OR within the group */
@@ -154,7 +147,7 @@ export type WorkSearchParams = {
   page?: string;
 };
 
-/** 搜尋 by 書名, 作者, 出版社 or ISBN, narrowed by 載體, 通路, 分類 and 價格上限. */
+/** 搜尋 by 書名, 作者, 出版社 or ISBN, narrowed by 通路, 分類 and 價格上限. */
 export function searchWorks(
   search: WorkSearchParams = {},
 ): Promise<SearchResponse> {
@@ -162,9 +155,6 @@ export function searchWorks(
 
   if (search.q) {
     params.set("q", search.q);
-  }
-  if (search.format) {
-    params.set("format", search.format);
   }
   for (const key of
     ["minPrice", "maxPrice", "year", "field1", "term1", "op", "field2", "term2"] as const) {
@@ -193,10 +183,8 @@ export function listChannels(): Promise<Channel[]> {
   return getJson<Channel[]>("/api/channels");
 }
 
-export function listFacets(format?: string): Promise<Facets> {
-  return getJson<Facets>(
-    format ? `/api/facets?format=${encodeURIComponent(format)}` : "/api/facets",
-  );
+export function listFacets(): Promise<Facets> {
+  return getJson<Facets>("/api/facets");
 }
 
 /**
@@ -205,19 +193,14 @@ export function listFacets(format?: string): Promise<Facets> {
  * Returns null when no 作品 carries that ISBN, so the page can render the 404
  * rather than treat a mistyped URL as a server failure.
  *
- * @param isbn   either 版本 ISBN; both address the same 作品
- * @param format 載體 to narrow to; omit for 全部版本
- * @param sort   PRICE (價格低→高) or CHANNEL (依通路)
+ * @param isbn the 作品 ISBN
+ * @param sort PRICE (價格低→高) or CHANNEL (依通路)
  */
 export async function fetchWorkDetail(
   isbn: string,
-  format?: string,
   sort?: string,
 ): Promise<WorkDetail | null> {
   const params = new URLSearchParams();
-  if (format) {
-    params.set("format", format);
-  }
   if (sort) {
     params.set("sort", sort);
   }

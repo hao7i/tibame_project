@@ -55,7 +55,6 @@ public class CatalogueService {
      * 管理後台 removed should not turn every old bookmark into an error.
      */
     public SearchResponse search(WorkSearchQuery query) {
-        Format loadFilter = parseFormat(query.format());
         Set<String> channels = codeSet(query.channels());
         Set<String> categories = nameSet(query.categories());
 
@@ -78,7 +77,7 @@ public class CatalogueService {
         }
 
         List<Matched> matched = works.stream()
-                .map(work -> toSummary(work, loadFilter, channels)
+                .map(work -> toSummary(work, channels)
                         .map(summary -> new Matched(work, summary)))
                 .flatMap(Optional::stream)
                 // The 價格區間 applies to the computed 最低價, so it moves with the
@@ -103,7 +102,7 @@ public class CatalogueService {
                 PAGE_SIZE,
                 totalPages,
                 latestFetchedAt(matched.stream().map(Matched::work).toList(),
-                        loadFilter, channels),
+                        channels),
                 pageOfWorks);
     }
 
@@ -114,18 +113,15 @@ public class CatalogueService {
      * 作品 are stored in, which is the order the design lists them. Every option
      * the 書目 knows stays on the rail whatever the 載體; only its count moves.
      *
-     * @param format 載體 to count under, or null/blank to count every 版本
      */
-    public FacetsView listFacets(String format) {
-        Format loadFilter = parseFormat(format);
+    public FacetsView listFacets() {
 
         List<Work> catalogue = workRepository.findAllWithOffers();
 
-        // Counts stay catalogue-wide across 搜尋 and across the other facets, but
-        // they do respect 載體: a 紙本-only 通路 advertising a count while 電子書 is
-        // selected is a dead end, since ticking it can only ever return nothing.
+        // Counts stay catalogue-wide: they do not move with 搜尋 or with the
+        // other facets, so a reader can see what each option would widen to.
         List<Work> works = catalogue.stream()
-                .filter(work -> !offersOf(work, loadFilter, Set.of()).isEmpty())
+                .filter(work -> !offersOf(work, Set.of()).isEmpty())
                 .toList();
 
         List<FacetsView.ChannelFacet> channels =
@@ -134,8 +130,7 @@ public class CatalogueService {
                                 channel.getCode(),
                                 channel.getName(),
                                 (int) works.stream()
-                                        .filter(work -> carriesChannel(
-                                                work, channel.getCode(), loadFilter))
+                                        .filter(work -> carriesChannel(work, channel.getCode()))
                                         .count()))
                         .toList();
 
@@ -144,7 +139,7 @@ public class CatalogueService {
         // 誠實的答案, whereas a missing row reads as though the 分類 never existed.
         Map<String, Integer> byCategory = new LinkedHashMap<>();
         for (Work work : catalogue) {
-            boolean sellable = !offersOf(work, loadFilter, Set.of()).isEmpty();
+            boolean sellable = !offersOf(work, Set.of()).isEmpty();
             byCategory.merge(work.getCategory(), sellable ? 1 : 0, Integer::sum);
         }
 
@@ -155,8 +150,8 @@ public class CatalogueService {
         return new FacetsView(channels, categories);
     }
 
-    private static boolean carriesChannel(Work work, String channelCode, Format loadFilter) {
-        return offersOf(work, loadFilter, Set.of()).stream()
+    private static boolean carriesChannel(Work work, String channelCode) {
+        return offersOf(work, Set.of()).stream()
                 .anyMatch(offer -> offer.getChannel().getCode().equals(channelCode));
     }
 
@@ -298,18 +293,16 @@ public class CatalogueService {
      * 紙本 one so the URL a reader ends up sharing is the canonical form.
      *
      * @param isbn   ISBN of any 版本 of the 作品
-     * @param format 載體 to narrow to, or null/blank for 全部版本
      * @param sort   PRICE (default) or CHANNEL
      * @throws java.util.NoSuchElementException when no 作品 carries that ISBN
      */
-    public WorkDetail findWork(String isbn, String format, String sort) {
-        Format loadFilter = parseFormat(format);
+    public WorkDetail findWork(String isbn, String sort) {
         OfferSort order = parseSort(sort);
 
         Work work = workRepository.findByEditionIsbn(isbn)
                 .orElseThrow(() -> new NoSuchElementException("找不到 ISBN 為 " + isbn + " 的作品"));
 
-        List<Offer> offers = offersOf(work, loadFilter, Set.of());
+        List<Offer> offers = offersOf(work, Set.of());
         Offer cheapest = offers.stream().min(Comparator.comparingInt(Offer::getPrice)).orElse(null);
         int listPrice = listPriceOf(work);
 
@@ -354,8 +347,6 @@ public class CatalogueService {
         return new OfferView(
                 offer.getChannel().getName(),
                 offer.getChannel().getCode(),
-                edition.getFormat(),
-                edition.getFormatLabel(),
                 offer.getStockStatus(),
                 offer.getPrice(),
                 discountLabel(percent),
@@ -391,7 +382,7 @@ public class CatalogueService {
 
         java.util.Map<Long, WorkSummary> byId = new LinkedHashMap<>();
         for (Work work : workRepository.findAllWithOffersByIdIn(workIds)) {
-            toSummary(work, null, Set.of())
+            toSummary(work, Set.of())
                     .ifPresent(summary -> byId.put(work.getId(), summary));
         }
         return byId;
@@ -436,9 +427,8 @@ public class CatalogueService {
      * A 作品 with no 報價 under the active 載體 is left out of the result set rather
      * than listed with a blank price — the same rule the design prototype applies.
      */
-    private static Optional<WorkSummary> toSummary(Work work, Format loadFilter,
-            Set<String> channels) {
-        List<Offer> offers = offersOf(work, loadFilter, channels);
+    private static Optional<WorkSummary> toSummary(Work work, Set<String> channels) {
+        List<Offer> offers = offersOf(work, channels);
         if (offers.isEmpty()) {
             return Optional.empty();
         }
@@ -449,8 +439,7 @@ public class CatalogueService {
                 .map(offer -> new ChannelPrice(
                         offer.getChannel().getName(),
                         offer.getChannel().getCode(),
-                        offer.getPrice(),
-                        offer.getEdition().getFormat()))
+                        offer.getPrice()))
                 .toList();
 
         BestPrice bestPrice = offers.stream()
@@ -484,9 +473,8 @@ public class CatalogueService {
      * narrowing 通路 changes 最低價 and 有貨通路數 rather than only hiding rows.
      * An empty set means no 通路 filter, not "no 通路".
      */
-    private static List<Offer> offersOf(Work work, Format loadFilter, Set<String> channels) {
+    private static List<Offer> offersOf(Work work, Set<String> channels) {
         return work.getEditions().stream()
-                .filter(edition -> loadFilter == null || edition.getFormat() == loadFilter)
                 .flatMap(edition -> edition.getOffers().stream())
                 // A 通路 that told us it does not carry the book has no price to
                 // contribute. Dropping it here rather than at each caller keeps
@@ -566,10 +554,9 @@ public class CatalogueService {
         return (percent % 10 == 0 ? percent / 10 : percent) + " 折";
     }
 
-    private static Instant latestFetchedAt(List<Work> works, Format loadFilter,
-            Set<String> channels) {
+    private static Instant latestFetchedAt(List<Work> works, Set<String> channels) {
         return works.stream()
-                .flatMap(work -> offersOf(work, loadFilter, channels).stream())
+                .flatMap(work -> offersOf(work, channels).stream())
                 .map(Offer::getFetchedAt)
                 .max(Comparator.naturalOrder())
                 .orElse(null);

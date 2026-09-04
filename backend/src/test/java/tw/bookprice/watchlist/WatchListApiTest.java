@@ -36,8 +36,7 @@ class WatchListApiTest {
 
     /** 原子習慣: 紙本 ISBN, 最低價 238 at Readmoo. */
     private static final String ATOMIC_PAPER = "9789861755267";
-    private static final String ATOMIC_EBOOK = "9789861755274";
-    private static final int ATOMIC_BEST = 238;
+    private static final int ATOMIC_BEST = 261;
 
     private static final String EMAIL = "watcher@example.com";
     private static final String PASSWORD = "watch me now";
@@ -113,24 +112,6 @@ class WatchListApiTest {
                 .andExpect(jsonPath("$.count").value(0));
     }
 
-    @Test
-    @DisplayName("追蹤的對象是作品：兩個版本的 ISBN 指向同一筆，不會變成兩筆")
-    void trackingIsPerWorkNotPerEdition() throws Exception {
-        mockMvc.perform(put("/api/me/watchlist/" + ATOMIC_PAPER).session(session))
-                .andExpect(status().isNoContent());
-        mockMvc.perform(put("/api/me/watchlist/" + ATOMIC_EBOOK).session(session))
-                .andExpect(status().isNoContent());
-
-        mockMvc.perform(get("/api/me/watchlist").session(session))
-                .andExpect(jsonPath("$.length()").value(1));
-
-        assertThat(watchItemRepository.count()).isEqualTo(1);
-
-        // 用電子書 ISBN 也移得掉同一個作品。
-        mockMvc.perform(delete("/api/me/watchlist/" + ATOMIC_EBOOK).session(session))
-                .andExpect(status().isNoContent());
-        assertThat(watchItemRepository.count()).isZero();
-    }
 
     @Test
     @DisplayName("通知狀態：未設目標價")

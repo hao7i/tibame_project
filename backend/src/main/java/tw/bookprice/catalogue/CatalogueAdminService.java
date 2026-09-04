@@ -72,7 +72,6 @@ public class CatalogueAdminService {
                         .map(offer -> new AdminOfferRow(
                                 offer.getId(),
                                 edition.getIsbn(),
-                                edition.getFormatLabel(),
                                 offer.getChannel().getName(),
                                 offer.getChannel().getCode(),
                                 offer.getPrice(),

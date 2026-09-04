@@ -22,7 +22,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
 
   const query = firstValue(params.q);
-  const format = firstValue(params.format);
   const channels = allValues(params.channel);
   const categories = allValues(params.category);
   const maxPrice = firstValue(params.maxPrice);
@@ -46,14 +45,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const [results, facets] = await Promise.all([
     searchWorks({
       q: query,
-      format,
       channel: channels,
       category: categories,
       maxPrice,
       page,
       ...advanced,
     }),
-    listFacets(format),
+    listFacets(),
   ]);
 
   // 追蹤中 state for the toggles. One read for the whole page rather than one
@@ -64,7 +62,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   );
 
   const chips = activeChips(
-    { channels, categories, maxPrice, query, format, view, advanced },
+    { channels, categories, maxPrice, query, view, advanced },
     facets,
   );
 
@@ -73,7 +71,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <SearchForm
         variant="bar"
         query={query}
-        format={format}
         filters={{ channels, categories, maxPrice, view }}
       />
 
@@ -124,7 +121,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </Blueprint>
           ) : (
             // All three views read the same 作品 the server already narrowed, so
-            // 篩選條件 and 載體 hold whichever one is showing.
+            // 篩選條件 hold whichever one is showing.
             <ResultBody
               view={view}
               works={results.works}
@@ -321,8 +318,7 @@ function ResultTable({
  * 售價 of one 通路 for one 作品, or null when it carries no 報價 — which is also
  * what a 通路 excluded by the 篩選條件 reads as, since its 報價 no longer counts.
  *
- * A 通路 selling both 載體 of the same 作品 has two 報價 in the row; the cell shows
- * the cheaper of them, the only one that can ever win 最低價.
+ * One 報價 per 通路 per 作品, so the cell is that single price.
  */
 function priceAt(work: WorkSummary, channelCode: string): number | null {
   const prices = work.channelPrices
@@ -338,8 +334,8 @@ function ResultRow({ work, watched }: { work: WorkSummary; watched: boolean }) {
   const detailHref = `/works/${work.isbn}`;
 
   // The cheapest of the pairs actually shown, which is not always the 作品
-  // 最低價: that one often belongs to an 電子書 通路 sorted past the fourth column,
-  // and the right-hand column states it anyway.
+  // 最低價: that one can sit past the fourth column, and the right-hand column
+  // states it anyway.
   const cheapestShown = Math.min(...pairs.map((pair) => pair.price));
 
   return (
@@ -365,9 +361,7 @@ function ResultRow({ work, watched }: { work: WorkSummary; watched: boolean }) {
 
         <div className={styles.pairs}>
           {pairs.map((pair) => (
-            // A 通路 selling both 載體 of one 作品
-            // yields two rows for the same name, so the 載體 is part of the key.
-            <div key={`${pair.channel}-${pair.format}`} className={styles.pair}>
+            <div key={pair.channel} className={styles.pair}>
               <span className={styles.pairChannel}>{pair.channel}</span>
               <span
                 className={
@@ -493,22 +487,18 @@ function activeChips(
     categories: string[];
     maxPrice?: string;
     query?: string;
-    format?: string;
     view: ViewValue;
     advanced: Record<string, string | undefined>;
   },
   facets: Facets,
 ): Chip[] {
-  // 搜尋 term, 載體 and 呈現方式 are not 篩選條件, so every chip link carries them
+  // 搜尋 term and 呈現方式 are not 篩選條件, so every chip link carries them
   // onward; page is always dropped, since removing a filter can shrink the
   // page count.
   const hrefWithout = (key: string, value: string) => {
     const params = new URLSearchParams();
     if (selection.query) {
       params.set("q", selection.query);
-    }
-    if (selection.format) {
-      params.set("format", selection.format);
     }
     if (selection.view !== DEFAULT_VIEW) {
       params.set("view", selection.view);

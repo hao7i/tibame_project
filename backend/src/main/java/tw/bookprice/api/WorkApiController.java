@@ -28,10 +28,6 @@ public class WorkApiController {
      * 出版年 and the 進階搜尋 欄位條件.
      *
      * @param q        the 搜尋 term; omit it to get 全部收錄書籍
-     * @param format   載體 to narrow to, PAPER or EBOOK; omit or leave blank for
-     *                 全部版本. Taken as a String rather than the enum so that the
-     *                 blank value a GET form submits for 全部版本 means 全部版本
-     *                 instead of failing to bind.
      * @param channel  通路 codes, repeatable; OR within the group
      * @param category 分類 names, repeatable; OR within the group
      * @param minPrice 價格下限, applied to the computed 最低價
@@ -48,7 +44,6 @@ public class WorkApiController {
     @GetMapping
     public SearchResponse search(
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String format,
             @RequestParam(required = false) List<String> channel,
             @RequestParam(required = false) List<String> category,
             @RequestParam(required = false) Integer minPrice,
@@ -61,7 +56,7 @@ public class WorkApiController {
             @RequestParam(required = false) String term2,
             @RequestParam(required = false) Integer page) {
         return catalogueService.search(new WorkSearchQuery(
-                q, format, channel, category, minPrice, maxPrice, year,
+                q, channel, category, minPrice, maxPrice, year,
                 new FieldQuery(field1, term1, op, field2, term2), page));
     }
 
@@ -69,14 +64,12 @@ public class WorkApiController {
      * One 作品 with every 通路 報價, for 單書比價.
      *
      * @param isbn   ISBN of either 版本; both address the same 作品
-     * @param format 載體 to narrow to; omit or leave blank for 全部版本
      * @param sort   PRICE (價格低→高, the default) or CHANNEL (依通路)
      */
     @GetMapping("/{isbn}")
     public WorkDetail findOne(
             @PathVariable String isbn,
-            @RequestParam(required = false) String format,
             @RequestParam(required = false) String sort) {
-        return catalogueService.findWork(isbn, format, sort);
+        return catalogueService.findWork(isbn, sort);
     }
 }

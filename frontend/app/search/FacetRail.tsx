@@ -90,7 +90,7 @@ export function FacetRail({ facets }: { facets: Facets }) {
 
   const clearFilters = () => {
     const params = new URLSearchParams(searchParams.toString());
-    // 搜尋 term and 載體 are not 篩選條件; they survive 清除篩選.
+    // 搜尋 term is not a 篩選條件; it survives 清除篩選.
     for (const key of ["channel", "category", "maxPrice", "page"]) {
       params.delete(key);
     }

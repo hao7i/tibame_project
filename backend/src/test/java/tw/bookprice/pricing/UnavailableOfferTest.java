@@ -83,9 +83,9 @@ class UnavailableOfferTest {
         priceRefreshService.refreshAll(true);
 
         mockMvc.perform(get("/api/works/" + ATOMIC))
-                .andExpect(jsonPath("$.bestPrice.price").value(238))
-                .andExpect(jsonPath("$.offers[?(@.channelCode == 'READMOO')].price")
-                        .value(org.hamcrest.Matchers.hasItem(238)));
+                .andExpect(jsonPath("$.bestPrice.price").value(261))
+                .andExpect(jsonPath("$.offers[?(@.channelCode == 'TCSB')].price")
+                        .value(org.hamcrest.Matchers.hasItem(261)));
     }
 
     @Test
@@ -94,7 +94,7 @@ class UnavailableOfferTest {
         priceRefreshService.refreshAll(true);
 
         mockMvc.perform(get("/api/works?q=原子習慣"))
-                .andExpect(jsonPath("$.works[0].channelCount").value(5))
+                .andExpect(jsonPath("$.works[0].channelCount").value(4))
                 .andExpect(jsonPath("$.works[0].channelPrices[?(@.channelCode == 'KINGSTONE')]")
                         .value(org.hamcrest.Matchers.empty()));
     }
