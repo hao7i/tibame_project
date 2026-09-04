@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Blueprint } from "@/components/Blueprint";
 import { channelSwatch } from "@/lib/channels";
 import { currentMember } from "@/lib/session";
 import { listWatchItems, type WatchItem } from "@/lib/watchlist";
@@ -74,7 +73,7 @@ function LockedCard() {
 
 function EmptyCard() {
   return (
-    <Blueprint className={`card ${styles.empty}`}>
+    <div className={`card ${styles.empty}`}>
       <span className="card-kicker">清單是空的</span>
       <span className="card-title">還沒有追蹤任何書籍</span>
       <p className="card-body">
@@ -83,7 +82,7 @@ function EmptyCard() {
       <Link href="/search" className={`btn btn-primary ${styles.emptyCta}`}>
         前往搜尋
       </Link>
-    </Blueprint>
+    </div>
   );
 }
 

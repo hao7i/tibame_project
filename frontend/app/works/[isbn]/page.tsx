@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
-import { Blueprint, BlueprintCorners } from "@/components/Blueprint";
 import { fetchWorkDetail, type OfferView, type WorkDetail } from "@/lib/api";
 import { channelSwatch } from "@/lib/channels";
 import { currentMember } from "@/lib/session";
@@ -48,9 +47,9 @@ export default async function WorkPage({ params, searchParams }: WorkPageProps) 
       </Link>
 
       <div className={styles.layout}>
+        {/* .blueprint stays: it is the only source of the 封面 框線. No 註冊記號. */}
         <div className={`blueprint duotone ${styles.cover}`}>
           <span className={styles.coverLabel}>封面</span>
-          <BlueprintCorners />
         </div>
 
         <div className={styles.main}>
@@ -160,7 +159,7 @@ function BestPriceCard({ work, watched }: { work: WorkDetail; watched: boolean }
   const best = work.bestPrice;
 
   return (
-    <Blueprint className={`card ${styles.card}`}>
+    <div className={`card ${styles.card}`}>
       <p className="card-kicker">目前最低</p>
 
       {best ? (
@@ -175,8 +174,7 @@ function BestPriceCard({ work, watched }: { work: WorkDetail; watched: boolean }
           <BuyLink
             url={best.purchaseUrl}
             label={`前往 ${best.channel}`}
-            className={`btn btn-primary blueprint ${styles.blockButton}`}
-            framed
+            className={`btn btn-primary ${styles.blockButton}`}
           />
         </>
       ) : (
@@ -189,7 +187,7 @@ function BestPriceCard({ work, watched }: { work: WorkDetail; watched: boolean }
         watched={watched}
         className={styles.blockButton}
       />
-    </Blueprint>
+    </div>
   );
 }
 
@@ -202,18 +200,15 @@ function BuyLink({
   url,
   label,
   className,
-  framed = false,
 }: {
   url?: string;
   label: string;
   className: string;
-  framed?: boolean;
 }) {
   if (!url) {
     return (
       <button type="button" className={className} disabled>
         {label}
-        {framed ? <BlueprintCorners /> : null}
       </button>
     );
   }
@@ -221,7 +216,6 @@ function BuyLink({
   return (
     <a href={url} className={className} target="_blank" rel="noopener noreferrer">
       {label}
-      {framed ? <BlueprintCorners /> : null}
     </a>
   );
 }

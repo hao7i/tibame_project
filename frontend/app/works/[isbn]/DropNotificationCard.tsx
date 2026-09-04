@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { Blueprint } from "@/components/Blueprint";
 import { setTargetPrice } from "@/lib/watch-actions";
 import styles from "./work.module.css";
 
@@ -29,7 +28,7 @@ export function DropNotificationCard({
   const commit = setTargetPrice.bind(null, isbn);
 
   return (
-    <Blueprint className={`card ${styles.card}`}>
+    <div className={`card ${styles.card}`}>
       <p className="card-kicker">降價通知</p>
       <p className="card-body">
         {loggedIn
@@ -66,6 +65,6 @@ export function DropNotificationCard({
           </Link>
         </>
       )}
-    </Blueprint>
+    </div>
   );
 }

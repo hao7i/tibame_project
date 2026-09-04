@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { BlueprintCorners } from "@/components/Blueprint";
 import { register, signIn, type AuthResult } from "@/lib/auth";
 import styles from "./login.module.css";
 
@@ -81,11 +80,10 @@ export function LoginForm({ hint, pendingIsbn }: { hint: string; pendingIsbn?: s
 
       <button
         type="submit"
-        className={`btn btn-primary blueprint btn-block ${styles.submit}`}
+        className={`btn btn-primary btn-block ${styles.submit}`}
         disabled={pending}
       >
         {pending ? "處理中…" : isRegister ? "註冊" : "登入"}
-        <BlueprintCorners />
       </button>
 
       <div className={styles.links}>

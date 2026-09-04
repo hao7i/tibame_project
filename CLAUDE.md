@@ -153,7 +153,11 @@ Web API Controller ─┘
   是後端 seed 資料的來源，照抄數值即可。
 - design tokens（`design/_ds/industry-*/styles.css` 的 `:root` 變數）**移植成專案自己的 CSS 變數**，
   元件中一律引用變數，不得硬寫 hex 值。
-- `.blueprint` 框的四個 11×11 註冊記號不得省略。
+- **四個 11×11 註冊記號（角落的 `+`）全站不使用**——`BlueprintCorners` 元件已刪除，不要重建。
+  這是刻意偏離 `design/README.md` 的決定（原設計在卡片、佔位框與主要按鈕上都畫了這些記號），
+  依使用者要求移除，**優先於上面「兩者衝突時以 README 為準」那條**。
+  `.blueprint` 這個 class 本身仍在用：書封佔位框的框線只由它提供。按鈕與卡片則連 class 一起拿掉，
+  因為 `.btn` 與 `.card` 本來就已提供 1px 直角邊框，外觀不變。
 - 互動狀態（hover / pressed / `:focus-visible` 2px accent 外框）不得留瀏覽器預設值。
 - 呼叫後端一律走 `/api` 的 Web API Controller，不得在前端直接連通路網站。
 

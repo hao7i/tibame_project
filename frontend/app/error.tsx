@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { Blueprint } from "@/components/Blueprint";
 import styles from "./error.module.css";
 
 /**
@@ -27,7 +26,7 @@ export default function Error({
 
   return (
     <div className="page-shell">
-      <Blueprint className={`card ${styles.card}`}>
+      <div className={`card ${styles.card}`}>
         <p className="card-kicker">發生錯誤</p>
         <p className="card-title">目前拿不到比價資料</p>
         <p className="card-body">
@@ -38,7 +37,7 @@ export default function Error({
         <button type="button" className="btn btn-secondary" onClick={reset}>
           重新載入
         </button>
-      </Blueprint>
+      </div>
     </div>
   );
 }
