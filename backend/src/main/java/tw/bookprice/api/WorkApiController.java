@@ -1,11 +1,13 @@
 package tw.bookprice.api;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import tw.bookprice.catalogue.CatalogueService;
 import tw.bookprice.catalogue.dto.SearchResponse;
+import tw.bookprice.catalogue.dto.WorkDetail;
 
 /** JSON API over 作品 for the Next.js front end. */
 @RestController
@@ -32,5 +34,20 @@ public class WorkApiController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String format) {
         return catalogueService.search(q, format);
+    }
+
+    /**
+     * One 作品 with every 通路 報價, for 單書比價.
+     *
+     * @param isbn   ISBN of either 版本; both address the same 作品
+     * @param format 載體 to narrow to; omit or leave blank for 全部版本
+     * @param sort   PRICE (價格低→高, the default) or CHANNEL (依通路)
+     */
+    @GetMapping("/{isbn}")
+    public WorkDetail findOne(
+            @PathVariable String isbn,
+            @RequestParam(required = false) String format,
+            @RequestParam(required = false) String sort) {
+        return catalogueService.findWork(isbn, format, sort);
     }
 }

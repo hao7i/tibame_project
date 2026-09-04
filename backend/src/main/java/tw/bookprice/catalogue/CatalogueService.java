@@ -4,13 +4,16 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tw.bookprice.catalogue.dto.BestPrice;
 import tw.bookprice.catalogue.dto.ChannelPrice;
 import tw.bookprice.catalogue.dto.ChannelView;
+import tw.bookprice.catalogue.dto.OfferView;
 import tw.bookprice.catalogue.dto.SearchResponse;
+import tw.bookprice.catalogue.dto.WorkDetail;
 import tw.bookprice.catalogue.dto.WorkSummary;
 
 /**
@@ -62,6 +65,90 @@ public class CatalogueService {
                 summaries);
     }
 
+    /**
+     * One 作品 with every 通路 報價, for 單書比價.
+     *
+     * Either 版本 ISBN addresses the 作品; the response always identifies it by the
+     * 紙本 one so the URL a reader ends up sharing is the canonical form.
+     *
+     * @param isbn   ISBN of any 版本 of the 作品
+     * @param format 載體 to narrow to, or null/blank for 全部版本
+     * @param sort   PRICE (default) or CHANNEL
+     * @throws java.util.NoSuchElementException when no 作品 carries that ISBN
+     */
+    public WorkDetail findWork(String isbn, String format, String sort) {
+        Format loadFilter = parseFormat(format);
+        OfferSort order = parseSort(sort);
+
+        Work work = workRepository.findByEditionIsbn(isbn)
+                .orElseThrow(() -> new NoSuchElementException("找不到 ISBN 為 " + isbn + " 的作品"));
+
+        List<Offer> offers = offersOf(work, loadFilter);
+        Offer cheapest = offers.stream().min(Comparator.comparingInt(Offer::getPrice)).orElse(null);
+        int listPrice = listPriceOf(work);
+
+        List<OfferView> rows = offers.stream()
+                .sorted(comparatorFor(order))
+                .map(offer -> toOfferView(offer, offer == cheapest))
+                .toList();
+
+        long channelCount = offers.stream()
+                .map(offer -> offer.getChannel().getId())
+                .distinct()
+                .count();
+
+        return new WorkDetail(
+                work.getPrimaryIsbn(),
+                work.getTitle(),
+                work.getAuthor(),
+                work.getPublisher(),
+                work.getPublicationYear(),
+                work.getCategory(),
+                work.getBlurb(),
+                listPrice,
+                (int) channelCount,
+                offers.stream().map(Offer::getFetchedAt).max(Comparator.naturalOrder()).orElse(null),
+                (cheapest == null) ? null : toBestPrice(cheapest, listPrice),
+                rows);
+    }
+
+    /** 價格低→高 breaks ties on 通路 order, so the table never reshuffles. */
+    private static Comparator<Offer> comparatorFor(OfferSort order) {
+        Comparator<Offer> byChannel =
+                Comparator.comparingInt(offer -> offer.getChannel().getDisplayOrder());
+        return (order == OfferSort.CHANNEL)
+                ? byChannel
+                : Comparator.comparingInt(Offer::getPrice).thenComparing(byChannel);
+    }
+
+    private static OfferView toOfferView(Offer offer, boolean best) {
+        Edition edition = offer.getEdition();
+        int percent = discountPercent(offer.getPrice(), edition.getListPrice());
+
+        return new OfferView(
+                offer.getChannel().getName(),
+                offer.getChannel().getCode(),
+                edition.getFormat(),
+                edition.getFormatLabel(),
+                offer.getStockStatus(),
+                offer.getPrice(),
+                discountLabel(percent),
+                offer.getChannel().purchaseUrlFor(edition.getIsbn()),
+                best);
+    }
+
+    /** Blank means 價格低→高; anything else has to name a known order. */
+    private static OfferSort parseSort(String sort) {
+        if (sort == null || sort.isBlank()) {
+            return OfferSort.PRICE;
+        }
+        try {
+            return OfferSort.valueOf(sort.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException cause) {
+            throw new IllegalArgumentException("不支援的排序方式: " + sort, cause);
+        }
+    }
+
     /** The six 通路, in the order every screen presents them. */
     public List<ChannelView> listChannels() {
         return channelRepository.findAllByOrderByDisplayOrderAsc().stream()
@@ -107,16 +194,19 @@ public class CatalogueService {
             return Optional.empty();
         }
 
+        int listPrice = listPriceOf(work);
+
         List<ChannelPrice> channelPrices = offers.stream()
                 .map(offer -> new ChannelPrice(
                         offer.getChannel().getName(),
+                        offer.getChannel().getCode(),
                         offer.getPrice(),
                         offer.getEdition().getFormat()))
                 .toList();
 
         BestPrice bestPrice = offers.stream()
                 .min(Comparator.comparingInt(Offer::getPrice))
-                .map(CatalogueService::toBestPrice)
+                .map(offer -> toBestPrice(offer, listPrice))
                 .orElseThrow();
 
         long channelCount = offers.stream()
@@ -131,7 +221,7 @@ public class CatalogueService {
                 work.getPublisher(),
                 work.getPublicationYear(),
                 work.getCategory(),
-                listPriceOf(work),
+                listPrice,
                 (int) channelCount,
                 bestPrice,
                 channelPrices));
@@ -160,13 +250,23 @@ public class CatalogueService {
                 .orElse(0);
     }
 
-    private static BestPrice toBestPrice(Offer offer) {
-        int percent = discountPercent(offer.getPrice(), offer.getEdition().getListPrice());
+    /**
+     * 折扣 is measured against the 定價 of the 版本 the 報價 belongs to, while
+     * 較定價省 is measured against the 作品 定價 the screen displays — so the two
+     * figures on the card agree with the 定價 tag beside them.
+     */
+    private static BestPrice toBestPrice(Offer offer, int workListPrice) {
+        Edition edition = offer.getEdition();
+        int percent = discountPercent(offer.getPrice(), edition.getListPrice());
+
         return new BestPrice(
                 offer.getChannel().getName(),
+                offer.getChannel().getCode(),
                 offer.getPrice(),
                 percent,
-                discountLabel(percent));
+                discountLabel(percent),
+                Math.max(0, workListPrice - offer.getPrice()),
+                offer.getChannel().purchaseUrlFor(edition.getIsbn()));
     }
 
     static int discountPercent(int price, int listPrice) {

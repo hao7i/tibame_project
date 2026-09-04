@@ -31,15 +31,29 @@ public class Channel {
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
 
+    /**
+     * Where 前往購買 sends a reader, with "{isbn}" standing in for the ISBN of the
+     * 版本 being bought. A template without that placeholder is used as-is, which
+     * is how the 通路 whose ISBN search could not be established are handled.
+     *
+     * Nullable: ddl-auto adds this column to databases that already hold 通路
+     * rows, and a NOT NULL column cannot be added to a populated table. The seed
+     * backfills it.
+     */
+    @Column(name = "search_url_template", length = 300)
+    private String searchUrlTemplate;
+
     protected Channel() {
         // for JPA
     }
 
-    public Channel(String code, String name, String kind, int displayOrder) {
+    public Channel(String code, String name, String kind, int displayOrder,
+            String searchUrlTemplate) {
         this.code = code;
         this.name = name;
         this.kind = kind;
         this.displayOrder = displayOrder;
+        this.searchUrlTemplate = searchUrlTemplate;
     }
 
     public Long getId() {
@@ -60,5 +74,21 @@ public class Channel {
 
     public int getDisplayOrder() {
         return displayOrder;
+    }
+
+    public String getSearchUrlTemplate() {
+        return searchUrlTemplate;
+    }
+
+    public void setSearchUrlTemplate(String searchUrlTemplate) {
+        this.searchUrlTemplate = searchUrlTemplate;
+    }
+
+    /** The 前往購買 target for one 版本, or null when this 通路 has no link. */
+    public String purchaseUrlFor(String isbn) {
+        if (searchUrlTemplate == null || searchUrlTemplate.isBlank()) {
+            return null;
+        }
+        return searchUrlTemplate.replace("{isbn}", isbn);
     }
 }

@@ -50,11 +50,15 @@ public class CatalogueSeeder {
      */
     @Transactional
     public void seed() {
+        // Ahead of the guard on purpose: this both creates the 通路 and backfills
+        // fields added since a database was first seeded, and an already-seeded
+        // database is precisely the one that needs the backfill.
+        Map<String, Channel> channels = seedChannels();
+
         if (workRepository.count() > 0) {
             return;
         }
 
-        Map<String, Channel> channels = seedChannels();
         Instant fetchedAt = Instant.now();
 
         WORKS.stream()
@@ -65,12 +69,25 @@ public class CatalogueSeeder {
     private Map<String, Channel> seedChannels() {
         if (channelRepository.count() == 0) {
             channelRepository.saveAll(CHANNELS.stream()
-                    .map(spec -> new Channel(
-                            spec.code(), spec.name(), spec.kind(), spec.displayOrder()))
+                    .map(spec -> new Channel(spec.code(), spec.name(), spec.kind(),
+                            spec.displayOrder(), spec.searchUrlTemplate()))
                     .toList());
         }
-        return channelRepository.findAll().stream()
+
+        Map<String, Channel> byCode = channelRepository.findAll().stream()
                 .collect(Collectors.toMap(Channel::getCode, Function.identity()));
+
+        // Backfill only. A database seeded before 前往購買 existed has 通路 rows
+        // with no link; filling the gap keeps them usable without overwriting
+        // anything an operator may have edited in the 管理後台.
+        for (ChannelSpec spec : CHANNELS) {
+            Channel channel = byCode.get(spec.code());
+            if (channel != null && channel.getSearchUrlTemplate() == null) {
+                channel.setSearchUrlTemplate(spec.searchUrlTemplate());
+            }
+        }
+
+        return byCode;
     }
 
     private static Work toWork(WorkSpec spec, Map<String, Channel> channels, Instant fetchedAt) {
@@ -106,7 +123,8 @@ public class CatalogueSeeder {
         return work;
     }
 
-    private record ChannelSpec(String code, String name, String kind, int displayOrder) {
+    private record ChannelSpec(String code, String name, String kind, int displayOrder,
+            String searchUrlTemplate) {
     }
 
     private record OfferSpec(String channelCode, Format format, int price, String stock) {
@@ -127,13 +145,35 @@ public class CatalogueSeeder {
     private static final String KOBO = "KOBO";
     private static final String READMOO = "READMOO";
 
+    /**
+     * 前往購買 targets, per docs/research/book-price-channel-data-sources.md.
+     *
+     * Three 通路 have an ISBN search URL the research established and this build
+     * re-checked (all 200): 金石堂, 讀冊生活 and 樂天Kobo. The other three get their
+     * site root instead of a guessed link:
+     *
+     *   - 博客來: the search host is robots-Allowed but the query parameter name
+     *     is recorded as Not established, and the research declined to guess it.
+     *     One browser visit by a human settles it.
+     *   - 誠品線上: robots.txt disallows /search for every user agent.
+     *   - Readmoo: ISBN is not a documented search input and /search/ is
+     *     disallowed for everyone.
+     *
+     * 票 10 replaces these with real product-page URLs for the 通路 it fetches.
+     */
     private static final List<ChannelSpec> CHANNELS = List.of(
-            new ChannelSpec(BOOKS_TW, "博客來", "紙本 / 電子書", 0),
-            new ChannelSpec(ESLITE, "誠品線上", "紙本 / 電子書", 1),
-            new ChannelSpec(KINGSTONE, "金石堂", "紙本", 2),
-            new ChannelSpec(TAAZE, "讀冊生活", "紙本", 3),
-            new ChannelSpec(KOBO, "樂天Kobo", "電子書", 4),
-            new ChannelSpec(READMOO, "Readmoo", "電子書", 5));
+            new ChannelSpec(BOOKS_TW, "博客來", "紙本 / 電子書", 0,
+                    "https://www.books.com.tw/"),
+            new ChannelSpec(ESLITE, "誠品線上", "紙本 / 電子書", 1,
+                    "https://www.eslite.com/"),
+            new ChannelSpec(KINGSTONE, "金石堂", "紙本", 2,
+                    "https://www.kingstone.com.tw/search/key/{isbn}"),
+            new ChannelSpec(TAAZE, "讀冊生活", "紙本", 3,
+                    "https://www.taaze.tw/rwd_searchResult.html?keyType%5B%5D=0&keyword%5B%5D={isbn}"),
+            new ChannelSpec(KOBO, "樂天Kobo", "電子書", 4,
+                    "https://www.kobo.com/tw/zh/search?query={isbn}"),
+            new ChannelSpec(READMOO, "Readmoo", "電子書", 5,
+                    "https://readmoo.com/"));
 
     private static final String EBOOK_LABEL = "電子書 EPUB";
 
