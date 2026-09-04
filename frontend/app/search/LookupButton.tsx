@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { lookupByTitle, type LookupOutcome } from "@/lib/lookup";
+import { lookupByTerm, type LookupOutcome } from "@/lib/lookup";
 
 /**
- * 到各通路找找看 — the way a 書名 the 書目 does not hold gets into it.
+ * 到各通路找找看 — the way a book the 書目 does not hold gets into it.
  *
  * 搜尋 only ever reads our own 書目, so a book nobody has imported returns
  * nothing however many shops stock it. This is the bridge, and it is a button
@@ -13,10 +13,13 @@ import { lookupByTitle, type LookupOutcome } from "@/lib/lookup";
  * 搜尋 plus a 商品頁 per candidate, then all five 通路 a 取價 — far too much to
  * spend on a typo.
  *
+ * The term is either a 書名 or an ISBN; the server decides which by checking it,
+ * so this component does not need to know.
+ *
  * It takes the best part of a minute, so the pending state is not decoration:
  * without it the page would look broken.
  */
-export function LookupButton({ query }: { query: string }) {
+export function LookupButton({ term }: { term: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [outcome, setOutcome] = useState<LookupOutcome | null>(null);
@@ -24,7 +27,7 @@ export function LookupButton({ query }: { query: string }) {
   const run = () => {
     setOutcome(null);
     startTransition(async () => {
-      const result = await lookupByTitle(query);
+      const result = await lookupByTerm(term);
       setOutcome(result);
       if (result.status === "imported") {
         router.refresh();

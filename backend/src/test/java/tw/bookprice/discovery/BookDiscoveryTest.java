@@ -134,6 +134,48 @@ class BookDiscoveryTest {
         assertThat(TitleRelevance.matches("", "三國演義")).isFalse();
         assertThat(TitleRelevance.matches("三國演義", null)).isFalse();
     }
+
+    /**
+     * The check digit is what separates an ISBN from any other run of digits.
+     * 金石堂 own product numbers are thirteen digits too, which is how one of them
+     * nearly became the key of a 作品 no other 通路 could look up.
+     */
+    @Test
+    @DisplayName("ISBN 判斷：Bookland 前綴與檢查碼都要正確")
+    void recognisesARealIsbn13() {
+        assertThat(Isbn13.isValid("9789861755267")).isTrue();
+        assertThat(Isbn13.isValid("9789865258900")).isTrue();
+
+        // 金石堂 商品編號 — thirteen digits, wrong prefix.
+        assertThat(Isbn13.isValid("2015920120583")).isFalse();
+        // The real ISBN with its last digit changed.
+        assertThat(Isbn13.isValid("9789861755268")).isFalse();
+        // Not thirteen digits, and not digits.
+        assertThat(Isbn13.isValid("978986175526")).isFalse();
+        assertThat(Isbn13.isValid("三國演義")).isFalse();
+        assertThat(Isbn13.isValid(null)).isFalse();
+    }
+
+    @Test
+    @DisplayName("找書關閉時，依 ISBN 也不會連外網或收錄")
+    void importsNothingByIsbnWhileDiscoveryIsOff() {
+        assertThat(importService.importByIsbn("9789570880311")).isEmpty();
+        assertThat(workRepository.findAllWithOffers()).hasSize(6);
+    }
+
+    @Test
+    @DisplayName("不是 ISBN 的字串不會走 ISBN 收錄")
+    void refusesToImportSomethingThatIsNotAnIsbn() {
+        assertThat(importService.importByIsbn("2015920120583")).isEmpty();
+        assertThat(importService.importByIsbn("三國演義")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("已收錄的 ISBN 不會被重複收錄")
+    void doesNotImportAnIsbnTheCatalogueAlreadyHolds() {
+        assertThat(importService.importByIsbn("9789861755267")).isEmpty();
+        assertThat(workRepository.findAllWithOffers()).hasSize(6);
+    }
     /**
      * A newly imported 作品 must be priceable: one 報價 row per 通路, all 查無 and
      * stale, which is exactly what the next 取價 goes looking for.

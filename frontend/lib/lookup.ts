@@ -9,15 +9,15 @@ export type LookupOutcome =
   | { status: "error"; message: string };
 
 /**
- * 拿書名去通路找書，找到就收進書目並取價.
+ * 拿書名或 ISBN 去通路找書，找到就收進書目並取價.
  *
  * Slow by nature: a 搜尋 at 金石堂, a 商品頁 per candidate, then 取價 at all five
  * 通路. That is why it is a 明確的動作 behind a button rather than something the
  * 搜尋 does by itself — a reader who typed a typo should not cost five shops a
  * page fetch each.
  */
-export async function lookupByTitle(title: string): Promise<LookupOutcome> {
-  const term = title.trim();
+export async function lookupByTerm(input: string): Promise<LookupOutcome> {
+  const term = input.trim();
   if (!term) {
     return { status: "none" };
   }
@@ -26,7 +26,7 @@ export async function lookupByTitle(title: string): Promise<LookupOutcome> {
     const response = await fetch(`${BACKEND_URL}/api/lookups`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: term }),
+      body: JSON.stringify({ term }),
       cache: "no-store",
     });
 

@@ -10,6 +10,7 @@ import { listWatchItems } from "@/lib/watchlist";
 import { currentMember } from "@/lib/session";
 import { ViewSwitch } from "./ViewSwitch";
 import { DEFAULT_VIEW, PRICE_CEILING, parseView, type ViewValue } from "@/lib/filters";
+import { isIsbn13 } from "@/lib/isbn";
 import styles from "./search.module.css";
 
 
@@ -41,7 +42,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const searchingAdvanced = Object.values(advanced).some(Boolean);
   // 進階搜尋 lands on this same screen, so the 找書 button has to read its
   // 條件 as well as the 簡易搜尋 box.
-  const titleToLookUp = lookupTitle(query, advanced);
+  const termToLookUp = lookupTerm(query, advanced);
 
   const [results, facets] = await Promise.all([
     searchWorks({
@@ -119,11 +120,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               {/* Only promise 找書 where it could actually work: it matches on
                   書名, so an 進階搜尋 by 作者 or 出版社 gets the plain wording. */}
               <p className="card-body">
-                {titleToLookUp
+                {termToLookUp
                   ? "書目裡沒有這本書。可以換一個條件再試，或讓我們到五家通路找找看，找到的話就會收錄進來並立刻比價。"
                   : "書目裡沒有符合這些條件的書。可以放寬左側的篩選條件，或換一個條件再試。"}
               </p>
-              {titleToLookUp ? <LookupButton query={titleToLookUp} /> : null}
+              {termToLookUp ? <LookupButton term={termToLookUp} /> : null}
             </div>
           ) : (
             // All three views read the same 作品 the server already narrowed, so
@@ -650,20 +651,20 @@ function formatFetchedAt(iso?: string): string {
   }).format(new Date(iso));
 }
 
-/** A query string can repeat a key; the screens only ever mean the first one. */
-
 /**
- * The 書名 a 找書 would go looking for, or undefined when this screen was never
- * asked about one.
+ * The 書名 or ISBN a 找書 would go looking for, or undefined when this screen was
+ * never asked about either.
  *
- * 找書 matches on 書名: it hands the term to 金石堂 and keeps only listings whose
- * title relates to it. An 進階搜尋 for 作者 or 出版社 therefore has nothing it could
- * usefully look up, and offering the button there would promise a search that can
- * only come back empty.
+ * Two kinds of term qualify, for different reasons. An ISBN is the key the whole
+ * system runs on, so a 通路 can be asked about it directly and its answer checked
+ * against it. A 書名 can only be judged for relevance, which still works well
+ * enough to be worth offering.
  *
- * A blank 欄位 counts as 書名, which is how CatalogueService reads it too.
+ * An 進階搜尋 by 作者, 出版社, 譯者 or 系列 qualifies as neither: 找書 has no route
+ * that takes them, so the button would promise a search that can only come back
+ * empty. A blank 欄位 counts as 書名, which is how CatalogueService reads it too.
  */
-function lookupTitle(
+function lookupTerm(
   query: string | undefined,
   advanced: { field1?: string; term1?: string; field2?: string; term2?: string },
 ): string | undefined {
@@ -677,9 +678,20 @@ function lookupTitle(
     { field: advanced.field2, term: advanced.term2?.trim() },
   ];
 
-  return rows.find((row) => (!row.field || row.field === "title") && row.term)?.term;
+  // The ISBN 欄位 is held to being an actual ISBN. 找書 can only answer one by
+  // asking a 通路 to confirm it, so a number that is not an ISBN has no route —
+  // whereas any 書名 at least has one worth trying.
+  const usable = rows.find((row) =>
+    row.term
+      ? row.field === "isbn"
+        ? isIsbn13(row.term)
+        : !row.field || row.field === "title"
+      : false,
+  );
+  return usable?.term;
 }
 
+/** A query string can repeat a key; the screens only ever mean the first one. */
 function firstValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }

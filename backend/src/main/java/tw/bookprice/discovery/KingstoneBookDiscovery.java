@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,6 +34,9 @@ public class KingstoneBookDiscovery implements BookDiscovery {
 
     private static final String SEARCH = "https://www.kingstone.com.tw/search/key/";
     private static final String PRODUCT = "https://www.kingstone.com.tw";
+
+    /** An ISBN 搜尋 is precise, so only a couple of listings are ever worth opening. */
+    private static final int MAX_ISBN_CANDIDATES = 2;
 
     private final HtmlFetcher fetcher;
     private final boolean live;
@@ -109,6 +113,50 @@ public class KingstoneBookDiscovery implements BookDiscovery {
             if (TitleRelevance.matches(title, matcher.group(2))) {
                 skus.add(matcher.group(1));
             }
+        }
+        return List.copyOf(skus);
+    }
+
+    /**
+     * 金石堂 product pages are keyed by its own SKU, not by ISBN, so even a
+     * direct lookup goes through 搜尋 first. Searching for the ISBN itself is
+     * precise enough that the shop returns the book and little else.
+     *
+     * No 書名 judgement here, and none is wanted: the 商品頁 declares an ISBN, and
+     * it either is the one asked for or the candidate is discarded.
+     */
+    @Override
+    public Optional<DiscoveredBook> byIsbn(String isbn) {
+        if (!live || !Isbn13.isValid(isbn)) {
+            return Optional.empty();
+        }
+
+        String results = fetcher.get(SEARCH + isbn);
+
+        for (String sku : skus(results, MAX_ISBN_CANDIDATES)) {
+            try {
+                String page = fetcher.get(PRODUCT + "/basic/" + sku + "/");
+                Optional<DiscoveredBook> book = KingstoneDiscoveryParsing.parse(page)
+                        .filter(candidate -> candidate.isbn().equals(isbn));
+                if (book.isPresent()) {
+                    return book;
+                }
+            } catch (RuntimeException cause) {
+                // A dead listing among the candidates is not the answer to
+                // whether this ISBN exists; the remaining ones still might be.
+                log.warn("依 ISBN 找書失敗: 金石堂 sku {}", sku, cause);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    /** Distinct product numbers in page order, capped. */
+    private static List<String> skus(String html, int limit) {
+        Set<String> skus = new LinkedHashSet<>();
+        Matcher matcher = LISTING.matcher(html);
+        while (matcher.find() && skus.size() < limit) {
+            skus.add(matcher.group(1));
         }
         return List.copyOf(skus);
     }

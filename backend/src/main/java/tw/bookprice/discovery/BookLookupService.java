@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import tw.bookprice.pricing.PriceRefreshService;
 
 /**
- * 搜尋不到時的完整流程: 拿書名去通路找 → 寫進書目 → 取價.
+ * 搜尋不到時的完整流程: 拿使用者輸入的字去通路找 → 寫進書目 → 取價.
  *
  * A separate bean from CatalogueImportService on purpose. The import is one
  * transaction and the 取價 that follows is a long run of network calls, which
@@ -34,11 +34,26 @@ public class BookLookupService {
     }
 
     /**
-     * @return ISBNs of the books added, empty when the 通路 knew nothing that we
-     *         did not already hold
+     * 收錄 whatever the reader was looking for.
+     *
+     * An ISBN and a 書名 are answered by different routes, and the term itself
+     * says which: an ISBN is checkable, so there is no need to ask the reader
+     * which kind of thing they typed. The ISBN route is the better one wherever
+     * it applies — it can confirm the book it found is the book asked for,
+     * whereas a 書名 can only be judged for relevance.
+     *
+     * @return ISBNs of the books added, empty when nothing new was found
      */
-    public List<String> lookup(String title) {
-        List<String> imported = importService.importByTitle(title, IMPORT_LIMIT);
+    public List<String> lookup(String term) {
+        if (term == null || term.isBlank()) {
+            return List.of();
+        }
+
+        String trimmed = term.trim();
+        List<String> imported = Isbn13.isValid(trimmed)
+                ? importService.importByIsbn(trimmed)
+                : importService.importByTitle(trimmed, IMPORT_LIMIT);
+
         if (!imported.isEmpty()) {
             priceRefreshService.refreshAll(false);
         }

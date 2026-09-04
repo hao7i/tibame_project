@@ -13,7 +13,7 @@ import tw.bookprice.discovery.dto.LookupRequest;
 import tw.bookprice.discovery.dto.LookupResult;
 
 /**
- * 依書名到各通路找書並收進書目.
+ * 依書名或 ISBN 到各通路找書並收進書目.
  *
  * POST rather than GET although it reads like a search: it writes to the 書目 and
  * costs the 通路 a run of page fetches, neither of which may happen because a
@@ -38,7 +38,7 @@ public class LookupApiController {
      */
     @PostMapping
     public ResponseEntity<LookupResult> lookup(@Valid @RequestBody LookupRequest request) {
-        List<String> imported = lookupService.lookup(request.title());
+        List<String> imported = lookupService.lookup(request.term());
         LookupResult result = new LookupResult(imported);
 
         return imported.isEmpty()

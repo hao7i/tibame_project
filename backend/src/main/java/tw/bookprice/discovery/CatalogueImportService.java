@@ -3,6 +3,7 @@ package tw.bookprice.discovery;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -93,6 +94,51 @@ public class CatalogueImportService {
         }
 
         return List.copyOf(imported);
+    }
+
+    /**
+     * Add the book carrying this ISBN, if any 通路 has it and we do not.
+     *
+     * The straightforward half of 收錄. There is no 書名 to judge and no ranking
+     * to do: the ISBN is the key the whole system runs on, so a 通路 either
+     * declares it or is discarded, and one book is either added or nothing is.
+     *
+     * @return the ISBN if it was written, empty otherwise
+     */
+    @Transactional
+    public List<String> importByIsbn(String isbn) {
+        if (!Isbn13.isValid(isbn)) {
+            return List.of();
+        }
+        if (workRepository.findByEditionIsbn(isbn).isPresent()) {
+            return List.of();
+        }
+
+        List<Channel> channels = channelRepository.findAll();
+        if (channels.isEmpty()) {
+            return List.of();
+        }
+
+        for (BookDiscovery discovery : discoveries) {
+            Optional<DiscoveredBook> found = discoverOne(discovery, isbn);
+            if (found.isPresent()) {
+                workRepository.save(toWork(found.get(), channels));
+                log.info("依 ISBN 收錄新書: {} ({})", found.get().title(), isbn);
+                return List.of(isbn);
+            }
+        }
+
+        return List.of();
+    }
+
+    /** One 通路 failing must not decide the answer; the next one may hold the book. */
+    private Optional<DiscoveredBook> discoverOne(BookDiscovery discovery, String isbn) {
+        try {
+            return discovery.byIsbn(isbn);
+        } catch (RuntimeException cause) {
+            log.warn("依 ISBN 找書失敗: {}", discovery.channelCode(), cause);
+            return Optional.empty();
+        }
     }
 
     /**

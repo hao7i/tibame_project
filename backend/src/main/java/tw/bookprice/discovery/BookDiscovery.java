@@ -1,6 +1,7 @@
 package tw.bookprice.discovery;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * How one 通路 is asked "which books match this 書名".
@@ -23,4 +24,16 @@ public interface BookDiscovery {
      * @throws RuntimeException when the 通路 could not be reached or read
      */
     List<DiscoveredBook> byTitle(String title, int limit);
+
+    /**
+     * The one book carrying this ISBN, if the 通路 has it.
+     *
+     * Stronger than byTitle and worth having separately: the ISBN the 商品頁
+     * declares either equals the one asked for or it does not, so there is
+     * nothing to weigh up. byTitle has to judge whether a listing is relevant at
+     * all, because a shop answers a 書名 with whatever it feels like showing.
+     *
+     * @throws RuntimeException when the 通路 could not be reached or read
+     */
+    Optional<DiscoveredBook> byIsbn(String isbn);
 }

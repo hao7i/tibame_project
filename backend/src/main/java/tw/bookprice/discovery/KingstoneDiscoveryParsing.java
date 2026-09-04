@@ -40,7 +40,7 @@ public final class KingstoneDiscoveryParsing {
             // and it is thirteen digits too, so checking the shape alone lets it
             // through — which is how a 作品 would end up keyed on a number the
             // other four 通路 have never heard of.
-            if (!isRealIsbn13(isbn) || title == null) {
+            if (!Isbn13.isValid(isbn) || title == null) {
                 continue;
             }
 
@@ -74,27 +74,6 @@ public final class KingstoneDiscoveryParsing {
         }
         Matcher matcher = pattern.matcher(text);
         return matcher.find() ? matcher.group(1).trim() : null;
-    }
-
-    /**
-     * A Bookland ISBN-13 with a correct check digit.
-     *
-     * Both halves earn their place. The 978/979 prefix rejects 金石堂 own product
-     * numbers, which are thirteen digits as well but start 20; the check digit
-     * rejects one that was truncated or mistyped. Neither proves the ISBN names
-     * the book this page is about — only that it is an ISBN at all.
-     */
-    private static boolean isRealIsbn13(String isbn) {
-        if (isbn == null || !isbn.matches("97[89][0-9]{10}")) {
-            return false;
-        }
-
-        int sum = 0;
-        for (int i = 0; i < 12; i++) {
-            int digit = isbn.charAt(i) - '0';
-            sum += (i % 2 == 0) ? digit : digit * 3;
-        }
-        return (10 - (sum % 10)) % 10 == isbn.charAt(12) - '0';
     }
 
     /** 0 rather than an exception: an unknown 出版年 is not a reason to skip a book. */
