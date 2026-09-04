@@ -69,6 +69,54 @@ public class CatalogueSeeder {
     }
 
     /**
+     * 版本 whose ISBN named a different book, and what it should have been.
+     *
+     * The prototype's ISBNs are 示意 numbers. One of them had a bad check digit
+     * and an earlier change "fixed" it by recomputing that digit — which turned
+     * a number that matched nothing into a valid ISBN belonging to a real but
+     * unrelated book. That is strictly worse: an invalid ISBN simply finds
+     * nothing, while a valid wrong one is found by every 通路, so 取價 filled the
+     * catalogue with another book's price, 商品頁 and 書封 and looked successful
+     * doing it.
+     *
+     * 9789864792917 is 翻轉賽局：贏占全球資通訊紅利.
+     * 9789861343181 is 大師們的寫作課.
+     *
+     * The replacements were each confirmed on two 通路 by title and publisher
+     * before being written here.
+     */
+    private record IsbnCorrection(String wrongIsbn, String isbn, int publicationYear) {
+    }
+
+    private static final List<IsbnCorrection> CORRECTED_ISBNS = List.of(
+            // 人類大歷史（增訂版）, 天下文化 2022 — the edition our 定價 480 matches.
+            new IsbnCorrection("9789864792917", "9789865258900", 2022),
+            // 正義：一場思辨之旅, 先覺 2018 — publisher and year were already right.
+            new IsbnCorrection("9789861343181", "9789861343280", 2018));
+
+    /**
+     * Runs ahead of the already-seeded guard, like the 通路 migration: a database
+     * that was seeded before this was noticed is exactly the one still holding
+     * the wrong ISBN.
+     */
+    private void migrateCorrectedIsbns() {
+        for (IsbnCorrection correction : CORRECTED_ISBNS) {
+            workRepository.findByEditionIsbn(correction.wrongIsbn()).ifPresent(work -> {
+                work.correctPublicationYear(correction.publicationYear());
+                work.getEditions().stream()
+                        .filter(edition -> edition.getIsbn().equals(correction.wrongIsbn()))
+                        .forEach(edition -> {
+                            edition.correctIsbn(correction.isbn());
+                            // Every price under the old ISBN belonged to the
+                            // other book, so none of them may be shown again
+                            // until 取價 has answered for the right one.
+                            edition.getOffers().forEach(Offer::forgetFetched);
+                        });
+            });
+        }
+    }
+
+    /**
      * 通路 that were replaced after databases had already been seeded.
      *
      * 誠品線上 became 三民網路書店 and 博客來 became 五南文化廣場. Both were replaced
@@ -169,6 +217,7 @@ public class CatalogueSeeder {
 
     private Map<String, Channel> seedChannels() {
         migrateReplacedChannels();
+        migrateCorrectedIsbns();
         removeNonPaperEditions();
 
         if (channelRepository.count() == 0) {
@@ -289,11 +338,12 @@ public class CatalogueSeeder {
                             new OfferSpec(TAAZE, 271, "3-5 個工作日"),
                             new OfferSpec(TCSB, 261, "有貨"))),
 
-            new WorkSpec("人類大歷史", "Yuval Noah Harari", "天下文化", 2018, "人文史地", 480,
+            new WorkSpec("人類大歷史", "Yuval Noah Harari", "天下文化", 2022, "人文史地", 480,
                     "從認知革命到科學革命，重述人類作為一個物種如何改變地球與自身的敘事。",
-                    // The prototype writes 9789864792916, whose check digit is wrong;
-                    // corrected to 7 so every ISBN in the catalogue is a valid ISBN-13.
-                    "9789864792917", "紙本精裝",
+                    // 9789865258900 is 人類大歷史（增訂版）, 天下文化 2022, confirmed on
+                    // 金石堂 and 讀冊生活. See CORRECTED_ISBNS for what was here before
+                    // and why a made-up ISBN was worse than an invalid one.
+                    "9789865258900", "紙本精裝",
                     List.of(
                             new OfferSpec(WUNAN, 379, "24 小時到貨"),
                             new OfferSpec(SANMIN, 384, "3-5 個工作日"),
@@ -312,7 +362,9 @@ public class CatalogueSeeder {
 
             new WorkSpec("正義：一場思辨之旅", "Michael J. Sandel", "先覺", 2018, "人文史地", 420,
                     "以電車難題等案例貫穿功利主義、自由至上主義與德性論的論證與彼此的衝突。",
-                    "9789861343181", "紙本平裝",
+                    // 9789861343280, confirmed on 金石堂: 先覺 2018, both the 紙本 and
+                    // 電子書 listings agree. See CORRECTED_ISBNS.
+                    "9789861343280", "紙本平裝",
                     List.of(
                             new OfferSpec(WUNAN, 332, "24 小時到貨"),
                             new OfferSpec(SANMIN, 336, "3-5 個工作日"),

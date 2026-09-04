@@ -146,6 +146,23 @@ public class Offer {
     }
 
     /**
+     * Forget what 取價 recorded, because it described a different book.
+     *
+     * Marked 查無 rather than deleted: the row is the 通路 column on the 報價表
+     * and has to survive, but the price behind it belonged to whatever the
+     * wrong ISBN really was, so it must stop being shown. fetchedAt is pushed
+     * back to the epoch — not nulled, the column is NOT NULL — so the next 取價
+     * sees a stale row and refetches it instead of skipping it as still fresh,
+     * which would make the 查無 permanent.
+     */
+    public void forgetFetched() {
+        this.fetchedAt = Instant.EPOCH;
+        this.productUrl = null;
+        this.fetchFailedAt = null;
+        this.unavailable = Boolean.TRUE;
+    }
+
+    /**
      * Record that the 通路 could not be read this time.
      *
      * 售價 and 取價時間 are untouched, so the screen can keep showing the last

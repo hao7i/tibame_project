@@ -112,6 +112,18 @@ public class Edition {
     }
 
     /**
+     * Replace an ISBN that turned out to name a different book, and drop
+     * everything that was fetched under it.
+     *
+     * The 書封 has to go with it: it is the cover of whatever that ISBN really
+     * was. Callers must reset the 報價 too — see Offer.forgetFetched.
+     */
+    public void correctIsbn(String replacement) {
+        this.isbn = replacement;
+        this.coverImageUrl = null;
+    }
+
+    /**
      * Overwritten on every 取價 that carries a 書封 rather than kept from the
      * first one seen. A URL that has rotted is then replaced by whichever 通路
      * still serves one, instead of the 版本 being stuck with a dead image for good.

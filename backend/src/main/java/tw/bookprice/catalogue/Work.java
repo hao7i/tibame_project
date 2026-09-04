@@ -62,6 +62,14 @@ public class Work {
     private String series;
 
     /**
+     * Corrects the 出版年 when the 版本 turns out to be a different printing than
+     * the catalogue claimed — see CatalogueSeeder.CORRECTED_ISBNS.
+     */
+    public void correctPublicationYear(int year) {
+        this.publicationYear = year;
+    }
+
+    /**
      * Ordered by ISBN so iteration is stable. getPrimaryIsbn() picks the first
      * 紙本 版本 it sees, and a 作品 with both a 平裝 and a 精裝 版本 would otherwise
      * be addressed by a different ISBN from one restart to the next, breaking
