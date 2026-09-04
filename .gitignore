@@ -40,8 +40,11 @@ $RECYCLE.BIN/
 hs_err_pid*
 replay_pid*
 
-# ── 暫存檔 ──────────────────────────────────────────────────
+# ── 本機參考資料 ────────────────────────────────────────────
 # 工作票（.scratch/<feature>/issues/）留在本機，不進版本庫。
 .scratch/
+# 設計稿與設計系統（唯讀參考）。CLAUDE.md 仍以 design/README.md 為
+# UI 規格的唯一來源，但該目錄只存在於本機，不隨 repo 散布。
+design/
 *.tmp
 *.bak
