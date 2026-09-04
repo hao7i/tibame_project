@@ -1,6 +1,18 @@
 package tw.bookprice.pricing;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.util.Optional;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -31,6 +43,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class HtmlFetcher {
 
+    private static final Logger log = LoggerFactory.getLogger(HtmlFetcher.class);
+
     private final HttpClient client;
     private final String userAgent;
     private final Duration minimumInterval;
@@ -41,11 +55,13 @@ public class HtmlFetcher {
             @Value("${bookprice.pricing.min-interval-ms:1500}") long minimumIntervalMs) {
         this.userAgent = userAgent;
         this.minimumInterval = Duration.ofMillis(minimumIntervalMs);
-        this.client = HttpClient.newBuilder()
+        HttpClient.Builder builder = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 // Kingstone search redirects; following them is normal browsing.
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .build();
+                .followRedirects(HttpClient.Redirect.NORMAL);
+
+        trustWithExtraIntermediates().ifPresent(builder::sslContext);
+        this.client = builder.build();
     }
 
     /**
@@ -78,6 +94,54 @@ public class HtmlFetcher {
         } catch (InterruptedException cause) {
             Thread.currentThread().interrupt();
             throw new PriceFetchException("取價被中斷", cause);
+        }
+    }
+
+    /**
+     * The default trust anchors plus any intermediate certificates we ship.
+     *
+     * 讀冊生活 serves an incomplete chain: the certificate naming its own issuer
+     * is simply absent, and an unrelated older chain is sent instead. Browsers
+     * and curl paper over it by following the caIssuers URL in the Authority
+     * Information Access extension; the JDK does not, and its
+     * enableAIAcaIssuers switch was measured against this host and did not fix
+     * it either. Supplying the missing certificate ourselves does.
+     *
+     * This does not weaken verification. The JDK default anchors are all still
+     * loaded, and the certificate added is the real issuer, published by Sectigo
+     * at the address the site certificate names, chaining to a root the JDK
+     * already trusts. Turning verification off instead would trade the transport
+     * security of every outbound request for one shop price.
+     *
+     * Failure here is not fatal: an unreadable truststore falls back to the
+     * default context, which is what every other 通路 needs anyway.
+     */
+    private static Optional<SSLContext> trustWithExtraIntermediates() {
+        try {
+            KeyStore trust = KeyStore.getInstance(KeyStore.getDefaultType());
+            Path cacerts = Path.of(System.getProperty("java.home"), "lib", "security", "cacerts");
+            try (InputStream in = Files.newInputStream(cacerts)) {
+                trust.load(in, "changeit".toCharArray());
+            }
+
+            CertificateFactory factory = CertificateFactory.getInstance("X.509");
+            for (Resource pem : new PathMatchingResourcePatternResolver()
+                    .getResources("classpath:certs/*.pem")) {
+                try (InputStream in = pem.getInputStream()) {
+                    trust.setCertificateEntry(pem.getFilename(), factory.generateCertificate(in));
+                }
+            }
+
+            TrustManagerFactory managers = TrustManagerFactory.getInstance(
+                    TrustManagerFactory.getDefaultAlgorithm());
+            managers.init(trust);
+
+            SSLContext context = SSLContext.getInstance("TLS");
+            context.init(null, managers.getTrustManagers(), null);
+            return Optional.of(context);
+        } catch (Exception cause) {
+            log.warn("無法載入額外的中介憑證，改用預設信任設定", cause);
+            return Optional.empty();
         }
     }
 

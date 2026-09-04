@@ -52,16 +52,10 @@ bookprice:
     # 三民網路書店：唯一具備專屬 ISBN 搜尋參數的通路，查詢是精確的而非在搜尋結果中猜。
     sanmin:
       live: true
-    # 讀冊生活暫時關閉即時取價。研究與實測都確認它技術上可行（robots.txt 允許、
-    # 商品頁 JSON-LD 帶 ISBN 與售價，curl 驗證過 260 元），但這台機器的 JDK 信任庫
-    # 無法驗證 taaze.tw 的憑證鏈（PKIX path building failed）——curl 會自動補抓中介
-    # 憑證，Java 不會。
-    #
-    # 正解是把該中介憑證匯入 JDK 的信任庫，而不是關掉憑證驗證：為了一家通路的價格
-    # 就對所有連線停止驗證身分，是拿整個應用程式的傳輸安全去換一個數字。
-    # 匯入之後把這裡改回 true 即可，程式碼不需要任何改動。
+    # 讀冊生活。它的伺服器送出的憑證鏈不完整（缺少 leaf 自己的簽發者），
+    # 靠 BackendApplication 開啟的 AIA 補抓機制解決——見該類別的註解。
     taaze:
-      live: false
+      live: true
 
 server:
   port: 8080
