@@ -69,10 +69,13 @@
 
   /* App-level layout tokens. The design specifies a 1180px desktop and a
      390px mobile rendition; the tablet range between them is not designed,
-     so the chrome switches to the mobile rendition at --bp-mobile. */
+     so the chrome switches to the mobile rendition at 860px.
+
+     That breakpoint is NOT a custom property: media queries cannot read
+     custom properties, so a --bp-mobile token would be a lie. It is written
+     literally as `@media (max-width: 860px)` everywhere. */
   --page-max: 1180px;
   --page-pad: 28px;
-  --bp-mobile: 860px;
 }
 
 *,
@@ -132,6 +135,20 @@ figcaption {
 
 .text-muted { color: color-mix(in srgb, var(--color-text) 55%, transparent); }
 .text-mono { font-family: var(--font-mono); }
+
+/* The standard page column: every route's outermost element wears this so the
+   gutter and max width stay in one place instead of in each route's module. */
+.page-shell {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 52px var(--page-pad) 44px;
+}
+
+@media (max-width: 860px) {
+  .page-shell {
+    padding: 30px 16px 36px;
+  }
+}
 
 :focus { outline: none; }
 :focus-visible {
@@ -400,6 +417,42 @@ textarea.input {
 .tag-outline {
   border: 1px solid var(--color-accent);
   color: var(--color-accent);
+}
+
+/* — dialog — */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
+}
+.dialog {
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: 0;
+  background: transparent;
+  border: 1px solid var(--color-divider);
+  box-shadow: var(--shadow-lg);
+}
+.dialog-title {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 20px;
+}
+.dialog-body {
+  font-size: 14px;
+  opacity: 0.85;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 /* — tables — */

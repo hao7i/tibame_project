@@ -27,16 +27,21 @@ export function SiteHeader({
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const labelFor = (href: string, label: string) =>
-    href === "/watch" && watchCount > 0 ? `${label} (${watchCount})` : label;
-
-  const authAction = loggedIn ? (
-    <button type="button" className={`btn btn-ghost ${styles.signOut}`}>
-      登出
-    </button>
-  ) : (
-    <Link href="/login" className={`btn btn-secondary ${styles.signIn}`}>
-      登入
+  const navLink = (
+    { href, label }: (typeof NAV_LINKS)[number],
+    className: string,
+    onClick?: () => void,
+  ) => (
+    <Link
+      key={href}
+      href={href}
+      aria-current={pathname === href ? "page" : undefined}
+      className={className}
+      onClick={onClick}
+    >
+      {/* The count rides on the 追蹤清單 link, which is where the desktop
+          design puts it — not in a separate badge. */}
+      {href === "/watch" && watchCount > 0 ? `${label} (${watchCount})` : label}
     </Link>
   );
 
@@ -45,7 +50,7 @@ export function SiteHeader({
       <div className={styles.inner}>
         <button
           type="button"
-          className={`btn btn-icon ${styles.hamburger}`}
+          className={`btn btn-secondary btn-icon ${styles.onDark} ${styles.hamburger}`}
           aria-label="開啟選單"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((open) => !open)}
@@ -59,39 +64,44 @@ export function SiteHeader({
         </Link>
 
         <nav className={styles.links}>
-          {NAV_LINKS.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              aria-current={pathname === href ? "page" : undefined}
-              className={styles.link}
-            >
-              {labelFor(href, label)}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) => navLink(link, styles.link))}
         </nav>
 
         <div className={styles.actions}>
-          {watchCount > 0 && (
-            <span className={styles.watchCount}>追蹤 {watchCount}</span>
+          {/* Mobile only: the design replaces the auth control with a 追蹤 n
+              button once the 會員 is signed in, and it routes to the list. */}
+          {loggedIn ? (
+            <Link
+              href="/watch"
+              className={`btn btn-secondary ${styles.onDark} ${styles.watchButton}`}
+            >
+              追蹤 {watchCount}
+            </Link>
+          ) : null}
+
+          {loggedIn ? (
+            <button
+              type="button"
+              className={`btn btn-ghost ${styles.onDark} ${styles.signOut}`}
+            >
+              登出
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className={`btn btn-secondary ${styles.onDark} ${styles.signIn}`}
+            >
+              登入
+            </Link>
           )}
-          {authAction}
         </div>
       </div>
 
       {menuOpen && (
         <nav className={styles.mobileMenu}>
-          {NAV_LINKS.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              aria-current={pathname === href ? "page" : undefined}
-              className={styles.mobileLink}
-              onClick={() => setMenuOpen(false)}
-            >
-              {labelFor(href, label)}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) =>
+            navLink(link, styles.mobileLink, () => setMenuOpen(false)),
+          )}
         </nav>
       )}
     </header>

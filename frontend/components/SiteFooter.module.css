@@ -33,6 +33,11 @@
   color: var(--color-accent-700);
 }
 
+/* Pressed goes one accent step deeper, per the design system's rule. */
+.link:active {
+  color: var(--color-accent-800);
+}
+
 /* The design specifies the footer for the desktop rendition only. */
 @media (max-width: 860px) {
   .footer {

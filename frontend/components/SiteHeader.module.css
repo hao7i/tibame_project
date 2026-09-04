@@ -1,6 +1,6 @@
 /*
  * Desktop: .nav at 14px 28px on a full-bleed --color-accent-900 field.
- * Mobile (<= --bp-mobile): 13px 16px, hamburger + brand + actions.
+ * Mobile (<= 860px): 13px 16px, hamburger + brand + actions.
  * Links on the dark bar use --color-accent-300, never --color-accent:
  * the accent does not carry enough contrast against accent-900.
  */
@@ -25,6 +25,14 @@
   margin-right: auto;
   color: var(--color-bg);
   text-decoration: none;
+}
+
+.brand:hover .brandName {
+  color: var(--color-accent-300);
+}
+
+.brand:active .brandName {
+  color: var(--color-accent-400);
 }
 
 .brandName {
@@ -59,32 +67,33 @@
   color: var(--color-accent-300);
 }
 
+/* Pressed goes one accent step deeper, per the design system's rule. */
+.link:active {
+  color: var(--color-accent-400);
+}
+
 .actions {
   display: flex;
   align-items: center;
   gap: var(--space-3);
 }
 
-.watchCount {
-  font-size: 13px;
-  color: var(--color-accent-300);
-}
-
-.signIn {
+/*
+ * Controls sitting on the accent-900 field. The design system's .btn-secondary
+ * hover/active are ink washes tuned for the light ground — on the dark bar they
+ * are invisible, so both states are replaced with light washes here.
+ */
+.onDark {
   color: var(--color-bg);
   border-color: var(--color-accent-600);
 }
 
-.signIn:hover {
+.onDark:hover {
   background: color-mix(in srgb, var(--color-bg) 12%, transparent);
 }
 
-.signOut {
-  color: var(--color-accent-300);
-}
-
-.signOut:hover {
-  background: color-mix(in srgb, var(--color-bg) 12%, transparent);
+.onDark:active {
+  background: color-mix(in srgb, var(--color-bg) 22%, transparent);
 }
 
 /* The global focus ring is --color-accent, which disappears against the
@@ -93,14 +102,23 @@
   outline-color: var(--color-accent-300);
 }
 
-.hamburger {
-  display: none;
-  color: var(--color-bg);
+.signIn {
+  font-size: 14px;
+}
+
+.signOut {
+  color: var(--color-accent-300);
   border-color: transparent;
 }
 
-.hamburger:hover {
-  background: color-mix(in srgb, var(--color-bg) 12%, transparent);
+/* Mobile only: replaces the auth control once signed in. */
+.watchButton {
+  display: none;
+  font-size: 12px;
+}
+
+.hamburger {
+  display: none;
 }
 
 .mobileMenu {
@@ -129,6 +147,15 @@
     display: none;
   }
 
+  .watchButton {
+    display: inline-flex;
+  }
+
+  /* Signed in, the 追蹤 n button stands in for the auth control. */
+  .signOut {
+    display: none;
+  }
+
   .mobileMenu {
     display: flex;
     flex-direction: column;
@@ -147,5 +174,9 @@
   .mobileLink:hover,
   .mobileLink[aria-current="page"] {
     color: var(--color-accent-300);
+  }
+
+  .mobileLink:active {
+    color: var(--color-accent-400);
   }
 }
