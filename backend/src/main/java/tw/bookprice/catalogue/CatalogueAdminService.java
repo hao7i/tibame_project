@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tw.bookprice.catalogue.dto.AdminChannelRow;
 import tw.bookprice.catalogue.dto.AdminOfferRow;
 import tw.bookprice.catalogue.dto.AdminWorkRow;
+import tw.bookprice.watchlist.WatchItemRepository;
 
 /**
  * 書目維護 for the 管理後台.
@@ -26,11 +27,14 @@ public class CatalogueAdminService {
 
     private final WorkRepository workRepository;
     private final ChannelRepository channelRepository;
+    private final WatchItemRepository watchItemRepository;
 
     public CatalogueAdminService(WorkRepository workRepository,
-            ChannelRepository channelRepository) {
+            ChannelRepository channelRepository,
+            WatchItemRepository watchItemRepository) {
         this.workRepository = workRepository;
         this.channelRepository = channelRepository;
+        this.watchItemRepository = watchItemRepository;
     }
 
     /** The six 通路 with their editable 購買連結樣板. */
@@ -84,6 +88,30 @@ public class CatalogueAdminService {
         return workRepository.findByEditionIsbn(isbn)
                 .map(Work::getTitle)
                 .orElseThrow(() -> new NoSuchElementException("找不到 ISBN 為 " + isbn + " 的作品"));
+    }
+
+    /**
+     * 從書目移除一個作品.
+     *
+     * Exists because 依書名找書 can be wrong. It reads a shop's 搜尋結果 page, and a
+     * page that mixes promotions in with results — or simply changes shape — can
+     * put a book in the 書目 that has nothing to do with what was searched for.
+     * Without this the only remedy would be hand-written SQL against a live
+     * database, which is a worse thing to have to reach for.
+     *
+     * 版本 and 報價 go with the 作品 through the existing cascade. A 作品 somebody is
+     * 追蹤 is refused rather than silently taking their 追蹤 with it.
+     */
+    @Transactional
+    public void removeWork(String isbn) {
+        Work work = workRepository.findByEditionIsbn(isbn)
+                .orElseThrow(() -> new NoSuchElementException("找不到 ISBN 為 " + isbn + " 的作品"));
+
+        if (watchItemRepository.existsByWorkId(work.getId())) {
+            throw new IllegalArgumentException("這個作品仍在會員的追蹤清單裡，不能移除");
+        }
+
+        workRepository.delete(work);
     }
 
     /**

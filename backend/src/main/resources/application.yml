@@ -61,8 +61,15 @@ bookprice:
     tcsb:
       live: true
     # 讀冊生活。它的伺服器送出的憑證鏈不完整（缺少 leaf 自己的簽發者），
-    # 靠 BackendApplication 開啟的 AIA 補抓機制解決——見該類別的註解。
+    # 靠 HtmlFetcher 內附的中繼憑證補上——見該類別的註解。
     taaze:
+      live: true
+
+  discovery:
+    # 依書名找書，只開金石堂：搜尋結果為伺服器端渲染，且商品頁的 JSON-LD 有真正的
+    # ISBN 欄位（而非只有店家自己的商品編號）。墊腳石的搜尋是瀏覽器端渲染，永遠
+    # 不可能用書名找；但那不影響它取價，因為取價只需要 ISBN。
+    kingstone:
       live: true
 
 server:

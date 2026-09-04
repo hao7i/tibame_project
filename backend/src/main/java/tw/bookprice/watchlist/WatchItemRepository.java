@@ -32,4 +32,7 @@ public interface WatchItemRepository extends JpaRepository<WatchItem, Long> {
     long countByMemberEmail(String email);
 
     void deleteByMemberEmail(String email);
+
+    /** Whether any 會員 is 追蹤 this 作品, which is what stops it being removed. */
+    boolean existsByWorkId(Long workId);
 }

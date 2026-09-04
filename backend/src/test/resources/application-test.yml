@@ -27,6 +27,11 @@ bookprice:
     taaze:
       live: false
 
+  discovery:
+    # 測試一律不得連外網。
+    kingstone:
+      live: false
+
 logging:
   level:
     org.hibernate.SQL: warn

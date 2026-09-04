@@ -4,6 +4,7 @@ import { BookCover } from "@/components/BookCover";
 import { SearchForm } from "@/components/SearchForm";
 import { listFacets, searchWorks, type Facets, type WorkSummary } from "@/lib/api";
 import { FacetRail } from "./FacetRail";
+import { LookupButton } from "./LookupButton";
 import { WatchToggle } from "@/components/WatchToggle";
 import { listWatchItems } from "@/lib/watchlist";
 import { currentMember } from "@/lib/session";
@@ -113,8 +114,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               {/* .card keeps the 1px frame; no 註冊記號 on the 空結果 卡. */}
               <p className="card-title">找不到符合的作品</p>
               <p className="card-body">
-                換一個書名、作者、出版社或 ISBN 再試一次，或放寬左側的篩選條件。
+                書目裡沒有這本書。可以換一個書名再試，或讓我們到五家通路找找看，
+                找到的話就會收錄進來並立刻比價。
               </p>
+              {query ? <LookupButton query={query} /> : null}
             </div>
           ) : (
             // All three views read the same 作品 the server already narrowed, so

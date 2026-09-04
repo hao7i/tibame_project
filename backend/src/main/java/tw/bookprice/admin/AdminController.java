@@ -84,6 +84,20 @@ public class AdminController {
     }
 
     /**
+     * 從書目移除一個作品.
+     *
+     * The counterpart to 依書名找書: that can add a book the reader never asked
+     * for, and this is how it comes back out without anyone writing SQL against
+     * a live database.
+     */
+    @PostMapping("/admin/works/{isbn}/delete")
+    public String removeWork(@PathVariable String isbn, RedirectAttributes redirect) {
+        catalogueAdminService.removeWork(isbn);
+        redirect.addFlashAttribute("message", "作品已從書目移除");
+        return "redirect:/admin/works";
+    }
+
+    /**
      * 手動觸發一次取價.
      *
      * The report is passed through the redirect rather than rendered from the
