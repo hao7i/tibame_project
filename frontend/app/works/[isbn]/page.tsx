@@ -10,22 +10,15 @@ import { WatchToggle } from "@/components/WatchToggle";
 import { DropNotificationCard } from "./DropNotificationCard";
 import styles from "./work.module.css";
 
-const SORT_TABS = [
-  { label: "價格低→高", value: "PRICE" },
-  { label: "依通路", value: "CHANNEL" },
-];
-
 type WorkPageProps = {
   params: Promise<{ isbn: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function WorkPage({ params, searchParams }: WorkPageProps) {
+export default async function WorkPage({ params }: WorkPageProps) {
   const { isbn } = await params;
-  const query = await searchParams;
-  const sort = firstValue(query.sort) ?? "PRICE";
-
-  const work = await fetchWorkDetail(isbn, sort);
+  // 報價表 is always cheapest first now that the 排序 control is gone; the API
+  // still takes a sort, this screen simply never asks for another one.
+  const work = await fetchWorkDetail(isbn);
   if (!work) {
     notFound();
   }
@@ -68,13 +61,6 @@ export default async function WorkPage({ params, searchParams }: WorkPageProps) 
 
           <div className={styles.tableHead}>
             <h4 className={styles.tableTitle}>各通路報價</h4>
-            <div className={styles.switches}>
-              <TabGroup
-                tabs={SORT_TABS}
-                current={sort}
-                hrefFor={(value) => hrefFor(work.isbn, value)}
-              />
-            </div>
           </div>
 
           {work.offers.length === 0 ? (
@@ -219,44 +205,6 @@ function BuyLink({
   );
 }
 
-/** A segmented control built from links, so the page needs no client JavaScript. */
-function TabGroup({
-  tabs,
-  current,
-  hrefFor,
-}: {
-  tabs: { label: string; value: string }[];
-  current: string;
-  hrefFor: (value: string) => string;
-}) {
-  return (
-    <div className="seg">
-      {tabs.map((tab) => (
-        <Link
-          key={tab.label}
-          href={hrefFor(tab.value)}
-          aria-current={tab.value === current ? "true" : undefined}
-          className={`seg-opt ${styles.tab} ${
-            tab.value === current ? styles.tabSelected : ""
-          }`}
-        >
-          {tab.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function hrefFor(isbn: string, sort: string): string {
-  const params = new URLSearchParams();
-  if (sort && sort !== "PRICE") {
-    params.set("sort", sort);
-  }
-
-  const queryString = params.toString();
-  return `/works/${isbn}${queryString ? `?${queryString}` : ""}`;
-}
-
 /** 取價時間 in Taipei time, so the stamp does not shift with the server locale. */
 function formatFetchedAt(iso?: string): string {
   if (!iso) {
@@ -272,8 +220,4 @@ function formatFetchedAt(iso?: string): string {
     minute: "2-digit",
     hour12: false,
   }).format(new Date(iso));
-}
-
-function firstValue(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
 }

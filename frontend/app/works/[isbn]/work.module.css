@@ -75,24 +75,6 @@
   margin: 0;
 }
 
-.switches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-/* The segmented control is built from links, so the checked-input rule in the
-   design system cannot apply; this reproduces its selected state. */
-.tab {
-  text-decoration: none;
-  color: inherit;
-}
-
-.tabSelected {
-  background: var(--color-accent);
-  color: var(--color-bg);
-}
-
 /* — offer table — */
 .tableScroll {
   overflow-x: auto;
@@ -224,19 +206,6 @@
 
   .blurb {
     margin-bottom: var(--space-6);
-  }
-
-  .switches {
-    width: 100%;
-  }
-
-  .switches > * {
-    width: 100%;
-  }
-
-  .tab {
-    flex: 1;
-    justify-content: center;
   }
 
   .offerTable {
