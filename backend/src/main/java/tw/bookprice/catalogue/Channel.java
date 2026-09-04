@@ -80,6 +80,22 @@ public class Channel {
         return searchUrlTemplate;
     }
 
+    /**
+     * Take over the identity of a 通路 this one replaces.
+     *
+     * 報價 point at the 通路 row, not at its code, so converting the row in place
+     * carries them across instead of stranding them. It exists because 誠品線上
+     * was replaced by 三民網路書店 after the 書目 had already been seeded, and the
+     * seeder is idempotent: without this, an existing database would keep a 通路
+     * that can no longer be priced.
+     */
+    public void replaceWith(String code, String name, String kind, String searchUrlTemplate) {
+        this.code = code;
+        this.name = name;
+        this.kind = kind;
+        this.searchUrlTemplate = searchUrlTemplate;
+    }
+
     public void setSearchUrlTemplate(String searchUrlTemplate) {
         this.searchUrlTemplate = searchUrlTemplate;
     }

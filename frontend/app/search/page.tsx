@@ -365,7 +365,7 @@ function ResultRow({ work, watched }: { work: WorkSummary; watched: boolean }) {
 
         <div className={styles.pairs}>
           {pairs.map((pair) => (
-            // A 通路 selling both 載體 of one 作品 (博客來 and 誠品線上 both do)
+            // A 通路 selling both 載體 of one 作品 (博客來 does)
             // yields two rows for the same name, so the 載體 is part of the key.
             <div key={`${pair.channel}-${pair.format}`} className={styles.pair}>
               <span className={styles.pairChannel}>{pair.channel}</span>

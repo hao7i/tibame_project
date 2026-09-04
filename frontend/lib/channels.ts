@@ -19,7 +19,7 @@ const CHANNEL_TINTS: Record<string, ChannelTint> = {
     text: "var(--color-accent-900)",
     subText: "var(--color-accent-800)",
   },
-  ESLITE: {
+  SANMIN: {
     background: "var(--color-accent-300)",
     text: "var(--color-accent-900)",
     subText: "var(--color-accent-800)",

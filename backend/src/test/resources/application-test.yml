@@ -18,6 +18,8 @@ bookprice:
   pricing:
     kingstone:
       live: false
+    sanmin:
+      live: false
     taaze:
       live: false
 

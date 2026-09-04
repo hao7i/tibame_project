@@ -49,6 +49,9 @@ bookprice:
     # 關掉任一家會退回示意實作，網站仍然可以展示。
     kingstone:
       live: true
+    # 三民網路書店：唯一具備專屬 ISBN 搜尋參數的通路，查詢是精確的而非在搜尋結果中猜。
+    sanmin:
+      live: true
     # 讀冊生活暫時關閉即時取價。研究與實測都確認它技術上可行（robots.txt 允許、
     # 商品頁 JSON-LD 帶 ISBN 與售價，curl 驗證過 260 元），但這台機器的 JDK 信任庫
     # 無法驗證 taaze.tw 的憑證鏈（PKIX path building failed）——curl 會自動補抓中介
