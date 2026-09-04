@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { BlueprintCorners } from "@/components/Blueprint";
 import styles from "./SearchForm.module.css";
 
 /**
@@ -16,7 +15,6 @@ type SearchFormProps = {
   /** Active 篩選條件, carried through a new 搜尋 from the results bar. */
   filters?: {
     channels?: string[];
-    categories?: string[];
     maxPrice?: string;
     /** 呈現方式; omitted when it is the default 列表. */
     view?: string;
@@ -41,9 +39,6 @@ export function SearchForm({ variant, query = "", filters }: SearchFormProps) {
           {(filters?.channels ?? []).map((code) => (
             <input key={`channel-${code}`} type="hidden" name="channel" value={code} />
           ))}
-          {(filters?.categories ?? []).map((name) => (
-            <input key={`category-${name}`} type="hidden" name="category" value={name} />
-          ))}
           {filters?.maxPrice ? (
             <input type="hidden" name="maxPrice" value={filters.maxPrice} />
           ) : null}
@@ -63,9 +58,11 @@ export function SearchForm({ variant, query = "", filters }: SearchFormProps) {
           aria-label="搜尋書名、作者、出版社或 ISBN"
         />
 
-        <button type="submit" className={`btn btn-primary blueprint ${styles.submit}`}>
+        {/* No .blueprint here: the 註冊記號 belong to the 書封 佔位框, and on a
+            solid accent button the four corner marks read as damage rather than
+            as register marks. .btn already supplies the 1px square border. */}
+        <button type="submit" className={`btn btn-primary ${styles.submit}`}>
           比價
-          <BlueprintCorners />
         </button>
 
         <Link

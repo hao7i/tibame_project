@@ -6,11 +6,6 @@ import type { Facets } from "@/lib/api";
 import { PRICE_CEILING } from "@/lib/filters";
 import styles from "./search.module.css";
 
-type Selection = {
-  channels: string[];
-  categories: string[];
-};
-
 /**
  * 篩選條件 — the one interactive island on this screen.
  *
@@ -33,10 +28,7 @@ export function FacetRail({ facets }: { facets: Facets }) {
   const searchParams = useSearchParams();
 
   const [, startTransition] = useTransition();
-  const [selection, setSelection] = useOptimistic<Selection>({
-    channels: searchParams.getAll("channel"),
-    categories: searchParams.getAll("category"),
-  });
+  const [channels, setChannels] = useOptimistic<string[]>(searchParams.getAll("channel"));
 
   const activeCeiling = searchParams.get("maxPrice");
   const ceiling = activeCeiling ? Number(activeCeiling) : PRICE_CEILING.max;
@@ -47,27 +39,19 @@ export function FacetRail({ facets }: { facets: Facets }) {
     router.push(queryString ? `${pathname}?${queryString}` : pathname);
   };
 
-  const toggle = (key: keyof Selection, value: string) => {
+  const toggleChannel = (value: string) => {
     // Built from the optimistic selection, not from the URL, so two quick
     // clicks compose instead of the second overwriting the first.
-    const next: Selection = {
-      channels: key === "channels" ? toggled(selection.channels, value) : selection.channels,
-      categories:
-        key === "categories" ? toggled(selection.categories, value) : selection.categories,
-    };
+    const next = toggled(channels, value);
 
     const params = new URLSearchParams(searchParams.toString());
     params.delete("channel");
-    params.delete("category");
-    for (const code of next.channels) {
+    for (const code of next) {
       params.append("channel", code);
-    }
-    for (const name of next.categories) {
-      params.append("category", name);
     }
 
     startTransition(() => {
-      setSelection(next);
+      setChannels(next);
       push(params);
     });
   };
@@ -91,13 +75,13 @@ export function FacetRail({ facets }: { facets: Facets }) {
   const clearFilters = () => {
     const params = new URLSearchParams(searchParams.toString());
     // 搜尋 term is not a 篩選條件; it survives 清除篩選.
-    for (const key of ["channel", "category", "maxPrice", "page"]) {
+    for (const key of ["channel", "maxPrice", "page"]) {
       params.delete(key);
     }
     const queryString = params.toString();
 
     startTransition(() => {
-      setSelection({ channels: [], categories: [] });
+      setChannels([]);
       router.push(queryString ? `${pathname}?${queryString}` : pathname);
     });
   };
@@ -113,19 +97,8 @@ export function FacetRail({ facets }: { facets: Facets }) {
           label: channel.name,
           count: channel.count,
         }))}
-        selected={selection.channels}
-        onToggle={(value) => toggle("channels", value)}
-      />
-
-      <FacetGroup
-        name="分類"
-        options={facets.categories.map((category) => ({
-          value: category.name,
-          label: category.name,
-          count: category.count,
-        }))}
-        selected={selection.categories}
-        onToggle={(value) => toggle("categories", value)}
+        selected={channels}
+        onToggle={toggleChannel}
       />
 
       {/* Keyed on the URL value so navigating (a chip, 清除篩選, the back

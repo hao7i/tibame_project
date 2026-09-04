@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { Blueprint, BlueprintCorners } from "@/components/Blueprint";
+import { Blueprint } from "@/components/Blueprint";
 import { SearchForm } from "@/components/SearchForm";
 import { listFacets, searchWorks, type Facets, type WorkSummary } from "@/lib/api";
 import { FacetRail } from "./FacetRail";
@@ -23,7 +23,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   const query = firstValue(params.q);
   const channels = allValues(params.channel);
-  const categories = allValues(params.category);
   const maxPrice = firstValue(params.maxPrice);
   const page = firstValue(params.page);
   const view = parseView(firstValue(params.view));
@@ -46,7 +45,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     searchWorks({
       q: query,
       channel: channels,
-      category: categories,
       maxPrice,
       page,
       ...advanced,
@@ -62,7 +60,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   );
 
   const chips = activeChips(
-    { channels, categories, maxPrice, query, view, advanced },
+    { channels, maxPrice, query, view, advanced },
     facets,
   );
 
@@ -71,7 +69,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <SearchForm
         variant="bar"
         query={query}
-        filters={{ channels, categories, maxPrice, view }}
+        filters={{ channels, maxPrice, view }}
       />
 
       <div className={styles.layout}>
@@ -186,9 +184,9 @@ function ResultCard({ work, watched }: { work: WorkSummary; watched: boolean }) 
 
   return (
     <Blueprint className={`card ${styles.card}`}>
+      {/* Keeps .blueprint for the 1px frame and 定位, but not the 註冊記號. */}
       <div className={`blueprint duotone ${styles.cardCover}`}>
         <span className={styles.coverLabel}>封面</span>
-        <BlueprintCorners />
       </div>
 
       <span className="card-kicker">{work.category}</span>
@@ -216,10 +214,9 @@ function ResultCard({ work, watched }: { work: WorkSummary; watched: boolean }) 
         <WatchToggle isbn={work.isbn} title={work.title} watched={watched} variant="icon" />
         <Link
           href={detailHref}
-          className={`btn btn-primary blueprint ${styles.cardCompare}`}
+          className={`btn btn-primary ${styles.cardCompare}`}
         >
           比價
-          <BlueprintCorners />
         </Link>
       </div>
     </Blueprint>
@@ -342,7 +339,6 @@ function ResultRow({ work, watched }: { work: WorkSummary; watched: boolean }) {
     <li className={styles.row}>
       <div className={`blueprint duotone ${styles.cover}`}>
         <span className={styles.coverLabel}>封面</span>
-        <BlueprintCorners />
       </div>
 
       <div className={styles.body}>
@@ -395,10 +391,9 @@ function ResultRow({ work, watched }: { work: WorkSummary; watched: boolean }) {
           className={styles.watch}
         />
 
-        <Link href={detailHref} className={`btn btn-primary blueprint ${styles.detail}`}>
+        <Link href={detailHref} className={`btn btn-primary ${styles.detail}`}>
           <span className={styles.detailWide}>看全部報價</span>
           <span className={styles.detailNarrow}>看 {work.channelCount} 個報價</span>
-          <BlueprintCorners />
         </Link>
       </div>
     </li>
@@ -484,7 +479,6 @@ type Chip = { key: string; label: string; href: string };
 function activeChips(
   selection: {
     channels: string[];
-    categories: string[];
     maxPrice?: string;
     query?: string;
     view: ViewValue;
@@ -514,11 +508,6 @@ function activeChips(
         params.append("channel", code);
       }
     }
-    for (const name of selection.categories) {
-      if (!(key === "category" && name === value)) {
-        params.append("category", name);
-      }
-    }
     if (selection.maxPrice && key !== "maxPrice") {
       params.set("maxPrice", selection.maxPrice);
     }
@@ -535,14 +524,6 @@ function activeChips(
       key: `channel-${code}`,
       label: name,
       href: hrefWithout("channel", code),
-    });
-  }
-
-  for (const name of selection.categories) {
-    chips.push({
-      key: `category-${name}`,
-      label: name,
-      href: hrefWithout("category", name),
     });
   }
 

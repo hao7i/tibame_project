@@ -6,7 +6,7 @@
  * Server Component as a client-reference proxy: importing this from there gave
  * an undefined max, which silently dropped the 價格上限 chip instead of failing.
  */
-export const PRICE_CEILING = { min: 150, max: 700, step: 10 };
+export const PRICE_CEILING = { min: 150, max: 1500, step: 10 };
 
 /**
  * 呈現方式 — 列表 / 卡片 / 表格.
