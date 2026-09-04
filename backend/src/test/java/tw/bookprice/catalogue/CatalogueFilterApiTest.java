@@ -118,7 +118,7 @@ class CatalogueFilterApiTest {
     }
 
     @Test
-    @DisplayName("每頁五筆，總數是套用篩選後、取頁前的筆數")
+    @DisplayName("分頁：每頁五筆，總數是套用篩選後、分頁前的筆數")
     void resultsArePaged() throws Exception {
         mockMvc.perform(get("/api/works").param("page", "1"))
                 .andExpect(status().isOk())

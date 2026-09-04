@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { SearchForm } from "@/components/SearchForm";
 import { listFacets, searchWorks, type Facets, type WorkSummary } from "@/lib/api";
 import { FacetRail } from "./FacetRail";
@@ -21,6 +21,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const query = firstValue(params.q);
   const channels = allValues(params.channel);
   const maxPrice = firstValue(params.maxPrice);
+  const page = firstValue(params.page);
   const view = parseView(firstValue(params.view));
 
   // 進階搜尋 conditions travel as their own parameters. This screen does not
@@ -42,6 +43,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       q: query,
       channel: channels,
       maxPrice,
+      page,
       ...advanced,
     }),
     listFacets(),
@@ -123,6 +125,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               watchedIsbns={watchedIsbns}
             />
           )}
+
+          {/* 分頁 applies to every 呈現方式: the server hands back one page of
+              five whichever 版型 is showing. */}
+          {results.totalPages > 1 ? (
+            <Pagination
+              page={results.page}
+              totalPages={results.totalPages}
+              params={params}
+            />
+          ) : null}
 
         </section>
       </div>
@@ -453,6 +465,74 @@ function ResultRow({
   );
 }
 
+function Pagination({
+  page,
+  totalPages,
+  params,
+}: {
+  page: number;
+  totalPages: number;
+  params: { [key: string]: string | string[] | undefined };
+}) {
+  const pageHref = (target: number) => {
+    const next = toParams(params);
+    if (target <= 1) {
+      next.delete("page");
+    } else {
+      next.set("page", String(target));
+    }
+    const queryString = next.toString();
+    return queryString ? `/search?${queryString}` : "/search";
+  };
+
+  const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
+
+  return (
+    <nav className={styles.pagination} aria-label="分頁">
+      {page > 1 ? (
+        <Link href={pageHref(page - 1)} className="btn btn-secondary">
+          <ChevronLeft size={16} strokeWidth={1.5} />
+          上一頁
+        </Link>
+      ) : (
+        <button type="button" className="btn btn-secondary" disabled>
+          <ChevronLeft size={16} strokeWidth={1.5} />
+          上一頁
+        </button>
+      )}
+
+      {pages.map((target) => (
+        <Link
+          key={target}
+          href={pageHref(target)}
+          aria-current={target === page ? "page" : undefined}
+          className={`btn btn-secondary ${styles.pageLink} ${
+            target === page ? styles.pageCurrent : ""
+          }`}
+        >
+          {target}
+        </Link>
+      ))}
+
+      {page < totalPages ? (
+        <Link href={pageHref(page + 1)} className="btn btn-secondary">
+          下一頁
+          <ChevronRight size={16} strokeWidth={1.5} />
+        </Link>
+      ) : (
+        <button type="button" className="btn btn-secondary" disabled>
+          下一頁
+          <ChevronRight size={16} strokeWidth={1.5} />
+        </button>
+      )}
+
+      <span className={styles.pageCount}>
+        第 {page} 頁 / 共 {totalPages} 頁
+      </span>
+    </nav>
+  );
+}
+
 type Chip = { key: string; label: string; href: string };
 
 /**
@@ -521,6 +601,22 @@ function activeChips(
   }
 
   return chips;
+}
+
+function toParams(params: {
+  [key: string]: string | string[] | undefined;
+}): URLSearchParams {
+  const result = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        result.append(key, entry);
+      }
+    } else if (value !== undefined) {
+      result.set(key, value);
+    }
+  }
+  return result;
 }
 
 /** The design writes this as 「作者 / 出版社, 出版年」. */

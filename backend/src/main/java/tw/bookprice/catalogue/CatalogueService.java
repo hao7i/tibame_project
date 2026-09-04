@@ -32,8 +32,8 @@ import tw.bookprice.catalogue.dto.WorkSummary;
 public class CatalogueService {
 
     /**
-     * 搜尋結果 至多這麼多筆, 而且不分頁 —— 前端三種呈現方式都只列這一頁。
-     * 超出的比對結果不會顯示, 但 total 仍回報真實的比對總數。
+     * 每頁筆數, 由伺服器決定而非呼叫端。超過一頁時前端會出現分頁,
+     * 三種呈現方式（列表／卡片／表格）共用同一套分頁。
      */
     static final int PAGE_SIZE = 5;
 
