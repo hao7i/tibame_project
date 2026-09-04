@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-Hant-TW"
+      th:replace="~{admin/layout :: page('報價維護', ~{::content})}">
+<body>
+<th:block th:fragment="content">
+  <h1 th:text="${title}">書名</h1>
+  <p class="sub">
+    <span th:text="${isbn}">ISBN</span> ·
+    手動修改售價不會改動取價時間——那是通路回報的時間，不是這次編輯的時間。
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>版本</th><th>ISBN</th><th>通路</th>
+        <th class="num">售價</th><th>庫存／到貨</th><th>取價時間</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr th:each="offer : ${offers}">
+        <td th:text="${offer.formatLabel()}">紙本平裝</td>
+        <td class="muted" th:text="${offer.isbn()}">ISBN</td>
+        <td th:text="${offer.channelName()}">通路</td>
+        <td colspan="3">
+          <form th:action="@{'/admin/works/' + ${isbn} + '/offers/' + ${offer.id()}}" method="post"
+                style="display:flex;gap:8px;align-items:center">
+            <input type="number" name="price" min="1" style="width:90px" th:value="${offer.price()}">
+            <input type="text" name="stockStatus" style="flex:1" th:value="${offer.stockStatus()}">
+            <span class="muted" th:text="${offer.fetchedAt()}">-</span>
+            <button type="submit" class="plain">儲存</button>
+          </form>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p><a th:href="@{/admin/works}">回書目</a></p>
+</th:block>
+</body>
+</html>

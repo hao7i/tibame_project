@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, body)" lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="'管理後台 · ' + ${title}">管理後台</title>
+  <!--
+    Styles are inline on purpose. This is the internal 管理後台: it must not pull
+    from a CDN, and it has no reason to share the front end design system, which
+    is built and served by Next.js on another origin entirely.
+  -->
+  <style>
+    :root { --line: #d5d5d8; --ink: #1d2d3d; --muted: #6b6b70; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.5 system-ui, sans-serif; color: #17171a; }
+    header { background: var(--ink); color: #fff; padding: 14px 24px; display: flex; gap: 22px; align-items: baseline; }
+    header b { font-size: 15px; letter-spacing: .04em; }
+    header a { color: #d6ebff; text-decoration: none; font-size: 13px; }
+    header a:hover { text-decoration: underline; }
+    main { padding: 24px; max-width: 1100px; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    p.sub { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+    th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    th { background: var(--ink); color: #d6ebff; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    td.num, th.num { text-align: right; }
+    input { font: inherit; padding: 4px 7px; border: 1px solid var(--line); border-radius: 0; }
+    button { font: inherit; padding: 5px 12px; border: 1px solid var(--ink); background: var(--ink); color: #fff; cursor: pointer; border-radius: 0; }
+    button.plain { background: #fff; color: var(--ink); }
+    a { color: #1d5fa8; }
+    .flash { background: #d6ebff; border-left: 3px solid var(--ink); padding: 9px 12px; margin-bottom: 18px; }
+    .muted { color: var(--muted); font-size: 12px; }
+    .fail { color: #a11; font-weight: 600; }
+  </style>
+</head>
+<body>
+<header>
+  <b>Book Price 管理後台</b>
+  <a th:href="@{/admin}">總覽</a>
+  <a th:href="@{/admin/channels}">通路</a>
+  <a th:href="@{/admin/works}">書目</a>
+</header>
+<main>
+  <div class="flash" th:if="${message}" th:text="${message}"></div>
+  <th:block th:replace="${body}"></th:block>
+</main>
+</body>
+</html>

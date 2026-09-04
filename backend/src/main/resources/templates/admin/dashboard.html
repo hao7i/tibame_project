@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-Hant-TW"
+      th:replace="~{admin/layout :: page('總覽', ~{::content})}">
+<body>
+<th:block th:fragment="content">
+  <h1>總覽</h1>
+  <p class="sub">
+    收錄 <span th:text="${channelCount}">6</span> 家通路、<span th:text="${#lists.size(works)}">6</span> 件作品。
+  </p>
+
+  <form th:action="@{/admin/refresh}" method="post">
+    <button type="submit">手動觸發一次取價</button>
+    <span class="muted">六家通路目前皆為示意實作，取價只會更新取價時間。</span>
+  </form>
+
+  <div th:if="${report}">
+    <h1 style="margin-top:28px">取價結果</h1>
+    <p class="sub">
+      開始於 <span th:text="${report.startedAt}">-</span>；
+      共更新 <span th:text="${report.totalUpdated()}">0</span> 筆，
+      失敗 <span th:text="${report.totalFailed()}">0</span> 筆。
+    </p>
+    <table>
+      <thead><tr><th>通路</th><th class="num">更新</th><th class="num">查無</th><th class="num">失敗</th><th>備註</th></tr></thead>
+      <tbody>
+        <tr th:each="row : ${report.channels()}">
+          <td th:text="${row.channelName()}">通路</td>
+          <td class="num" th:text="${row.updated()}">0</td>
+          <td class="num" th:text="${row.notFound()}">0</td>
+          <td class="num" th:classappend="${row.failed() > 0} ? 'fail'" th:text="${row.failed()}">0</td>
+          <td class="muted" th:text="${row.note()}"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</th:block>
+</body>
+</html>

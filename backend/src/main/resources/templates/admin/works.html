@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-Hant-TW"
+      th:replace="~{admin/layout :: page('書目', ~{::content})}">
+<body>
+<th:block th:fragment="content">
+  <h1>書目</h1>
+  <p class="sub">點書名進入該作品的版本與報價維護。</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>書名</th><th>作者</th><th>出版社</th><th class="num">出版年</th>
+        <th>分類</th><th class="num">版本</th><th class="num">報價</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr th:each="work : ${works}">
+        <td><a th:href="@{'/admin/works/' + ${work.isbn()}}" th:text="${work.title()}">書名</a></td>
+        <td th:text="${work.author()}">作者</td>
+        <td th:text="${work.publisher()}">出版社</td>
+        <td class="num" th:text="${work.publicationYear()}">2019</td>
+        <td th:text="${work.category()}">分類</td>
+        <td class="num" th:text="${work.editionCount()}">2</td>
+        <td class="num" th:text="${work.offerCount()}">6</td>
+      </tr>
+    </tbody>
+  </table>
+</th:block>
+</body>
+</html>

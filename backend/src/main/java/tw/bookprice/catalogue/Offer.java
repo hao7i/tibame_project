@@ -82,6 +82,19 @@ public class Offer {
         return stockStatus;
     }
 
+    /**
+     * Record what a 取價 just found.
+     *
+     * One method rather than three setters: 售價, 庫存 and 取價時間 only ever change
+     * together, and a 報價 whose price moved without its timestamp moving would
+     * be a lie about when it was true.
+     */
+    public void recordFetch(int price, String stockStatus, Instant fetchedAt) {
+        this.price = price;
+        this.stockStatus = stockStatus;
+        this.fetchedAt = fetchedAt;
+    }
+
     public Instant getFetchedAt() {
         return fetchedAt;
     }

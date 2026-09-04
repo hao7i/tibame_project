@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-Hant-TW"
+      th:replace="~{admin/layout :: page('通路', ~{::content})}">
+<body>
+<th:block th:fragment="content">
+  <h1>通路</h1>
+  <p class="sub">六家通路的顯示順序固定，購買連結樣板可在此維護；{isbn} 會被實際的 ISBN 取代。</p>
+
+  <table>
+    <thead><tr><th>代碼</th><th>名稱</th><th>載體</th><th>購買連結樣板</th><th></th></tr></thead>
+    <tbody>
+      <tr th:each="channel : ${channels}">
+        <td th:text="${channel.code()}">CODE</td>
+        <td th:text="${channel.name()}">名稱</td>
+        <td class="muted" th:text="${channel.kind()}">紙本</td>
+        <td colspan="2">
+          <form th:action="@{'/admin/channels/' + ${channel.code()}}" method="post"
+                style="display:flex;gap:8px">
+            <input type="text" name="searchUrlTemplate" style="flex:1" th:value="${channel.searchUrlTemplate()}">
+            <button type="submit" class="plain">儲存</button>
+          </form>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</th:block>
+</body>
+</html>

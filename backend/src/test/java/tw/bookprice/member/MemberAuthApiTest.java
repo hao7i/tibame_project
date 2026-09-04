@@ -178,6 +178,11 @@ class MemberAuthApiTest {
     void theTwoIdentitySystemsAreSeparate() throws Exception {
         register(EMAIL, PASSWORD);
 
+        // The 管理後台 account works — the other half of this rule. Without it a
+        // configuration that lets nobody in at all would pass as "separate".
+        mockMvc.perform(get("/admin").with(httpBasic("admin", "admin1234")))
+                .andExpect(status().isOk());
+
         // A 會員 is not an operator: /admin refuses the account entirely.
         mockMvc.perform(get("/admin").with(httpBasic(EMAIL, PASSWORD)))
                 .andExpect(status().isUnauthorized());

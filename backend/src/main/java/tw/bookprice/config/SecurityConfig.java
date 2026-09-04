@@ -20,6 +20,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
 import tw.bookprice.member.MemberDetailsService;
 
 /**
@@ -69,6 +72,12 @@ public class SecurityConfig {
      * The account lives in application.yml on purpose: it belongs to whoever
      * runs the service, not to the catalogue, and it must not be something a
      * 註冊 form could ever create.
+     *
+     * The configured password is hashed with the same encoder the 會員 use. It
+     * must not be stored with a {noop} prefix: that marker is only understood
+     * by a DelegatingPasswordEncoder, and against BCrypt it silently fails
+     * every comparison — an 管理後台 nobody can sign in to, with no error to
+     * say so.
      */
     @Bean
     @Order(1)
@@ -76,12 +85,12 @@ public class SecurityConfig {
         AuthenticationManager operators = new ProviderManager(
                 daoProvider(new InMemoryUserDetailsManager(User
                         .withUsername(adminUsername)
-                        .password("{noop}" + adminPassword)
+                        .password(passwordEncoder().encode(adminPassword))
                         .roles("ADMIN")
                         .build())));
 
         return http
-                .securityMatcher("/admin/**")
+                .securityMatcher("/admin", "/admin/**")
                 .authorizeHttpRequests(requests -> requests.anyRequest().hasRole("ADMIN"))
                 .authenticationManager(operators)
                 .httpBasic(Customizer.withDefaults())
@@ -89,7 +98,22 @@ public class SecurityConfig {
                 // could be mistaken for a 會員 one.
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .csrf(csrf -> csrf.disable())
+                /*
+                 * CSRF stays on here, unlike the 會員 chain: the 管理後台 is a
+                 * browser talking to forms, and a browser that has answered the
+                 * Basic challenge once will attach those credentials to a POST
+                 * another site provokes.
+                 *
+                 * The token lives in a cookie rather than the session because
+                 * this chain issues no session — one named JSESSIONID here
+                 * would collide with the 會員 one on the same host, which is the
+                 * whole reason it is stateless. The request handler is the
+                 * eager one so the token is resolved while the Thymeleaf form
+                 * is being rendered, rather than after it is too late to embed.
+                 */
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(eagerCsrfHandler()))
                 .build();
     }
 
@@ -162,6 +186,16 @@ public class SecurityConfig {
                  */
                 .csrf(csrf -> csrf.disable())
                 .build();
+    }
+
+    /**
+     * Resolves the CSRF token as the page renders instead of deferring it, so
+     * the hidden field is actually in the form Thymeleaf produces.
+     */
+    private static CsrfTokenRequestHandler eagerCsrfHandler() {
+        CsrfTokenRequestAttributeHandler handler = new CsrfTokenRequestAttributeHandler();
+        handler.setCsrfRequestAttributeName(null);
+        return handler;
     }
 
     private DaoAuthenticationProvider daoProvider(UserDetailsService users) {
