@@ -111,12 +111,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           ) : null}
 
           {results.works.length === 0 ? (
-            <Blueprint className={`card ${styles.empty}`}>
+            <div className={`card ${styles.empty}`}>
+              {/* .card keeps the 1px frame; no 註冊記號 on the 空結果 卡. */}
               <p className="card-title">找不到符合的作品</p>
               <p className="card-body">
                 換一個書名、作者、出版社或 ISBN 再試一次，或放寬左側的篩選條件。
               </p>
-            </Blueprint>
+            </div>
           ) : (
             // All three views read the same 作品 the server already narrowed, so
             // 篩選條件 hold whichever one is showing.
