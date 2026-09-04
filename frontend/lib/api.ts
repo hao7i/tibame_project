@@ -6,7 +6,13 @@
  * Next 16 does not cache fetch by default, which is what we want: the 6 小時
  * 取價 cache belongs to the backend, not to the page.
  */
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080";
+export const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080";
+
+/** A 前台會員, as the front end is allowed to see one. Never any password. */
+export type Member = {
+  id: number;
+  email: string;
+};
 
 /** 載體 — the two publication media the site covers. */
 export type Format = "PAPER" | "EBOOK";

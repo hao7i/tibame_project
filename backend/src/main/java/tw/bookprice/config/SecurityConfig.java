@@ -1,39 +1,172 @@
 package tw.bookprice.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import tw.bookprice.member.MemberDetailsService;
 
 /**
- * Spring Security is on the classpath, which locks every path by default. The
- * catalogue is public, so /api is opened here.
+ * Two identity systems that never meet.
  *
- * The two identity systems the project calls for are not built yet and are
- * deliberately absent rather than stubbed:
- *   - 前台會員 (追蹤清單, 目標價) — session cookie form login, added with 會員註冊與登入.
- *   - /admin 管理後台 — HTTP Basic against a single operator account, added with
- *     the 管理後台 work. It stays a separate identity system from 會員.
+ * They are separate filter chains with separate AuthenticationManagers, so
+ * neither can authenticate the accounts of the other even by accident:
+ *
+ *   - /admin/**       管理後台 operator, HTTP Basic against one account from
+ *                     application.yml. No database row, no 註冊 route.
+ *   - everything else 前台會員, form login against the member table with BCrypt,
+ *                     carried by a JSESSIONID session cookie.
+ *
+ * The AuthenticationManager on each chain is built here rather than left to
+ * Spring Boot. Publishing a UserDetailsService bean — MemberDetailsService is
+ * one — makes the auto-configured spring.security.user back off, which would
+ * silently delete the 管理後台 account and leave /admin authenticating 會員
+ * instead: exactly the merge these two systems must never have.
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private final String adminUsername;
+    private final String adminPassword;
+
+    public SecurityConfig(
+            @Value("${spring.security.user.name}") String adminUsername,
+            @Value("${spring.security.user.password}") String adminPassword) {
+        this.adminUsername = adminUsername;
+        this.adminPassword = adminPassword;
+    }
+
+    /**
+     * 會員 passwords. BCrypt, so what the database holds is a salted hash and
+     * the plaintext cannot be recovered from it.
+     */
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // Default-closed: only the catalogue API is open. anyRequest().permitAll()
-        // would silently publish /admin the moment the 管理後台 adds its first
-        // @Controller, with no failing test to say so.
-        //
-        // CSRF protection stays at its default. The catalogue API is read-only,
-        // so nothing here needs it turned off, and the 會員 work will want it on.
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * 管理後台. First in order, so /admin is decided here and never falls through
+     * to the 會員 chain.
+     *
+     * The account lives in application.yml on purpose: it belongs to whoever
+     * runs the service, not to the catalogue, and it must not be something a
+     * 註冊 form could ever create.
+     */
+    @Bean
+    @Order(1)
+    SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
+        AuthenticationManager operators = new ProviderManager(
+                daoProvider(new InMemoryUserDetailsManager(User
+                        .withUsername(adminUsername)
+                        .password("{noop}" + adminPassword)
+                        .roles("ADMIN")
+                        .build())));
+
+        return http
+                .securityMatcher("/admin/**")
+                .authorizeHttpRequests(requests -> requests.anyRequest().hasRole("ADMIN"))
+                .authenticationManager(operators)
+                .httpBasic(Customizer.withDefaults())
+                // Stateless: the 管理後台 must not hand out a session cookie that
+                // could be mistaken for a 會員 one.
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .csrf(csrf -> csrf.disable())
+                .build();
+    }
+
+    /**
+     * 前台會員 and the public 書目.
+     *
+     * 登入 is Spring Security form login with JSON-friendly handlers rather than
+     * redirects: the caller is the Next.js server, which needs a status code,
+     * not a 302 to a login page that does not exist on this origin.
+     */
+    @Bean
+    @Order(2)
+    SecurityFilterChain memberFilterChain(HttpSecurity http,
+            MemberDetailsService memberDetailsService) throws Exception {
+
+        AuthenticationManager members =
+                new ProviderManager(daoProvider(memberDetailsService));
+
         return http
                 .authorizeHttpRequests(requests -> requests
-                        .requestMatchers("/api/**").permitAll()
-                        .anyRequest().authenticated())
-                .httpBasic(Customizer.withDefaults())
+                        // The 書目 is public: 搜尋 and 比價 need no account.
+                        .requestMatchers("/api/works/**", "/api/channels", "/api/facets")
+                        .permitAll()
+                        // 註冊 and 登入 themselves cannot require being signed in.
+                        .requestMatchers("/api/members", "/api/session").permitAll()
+                        // 會員專屬 endpoints all live under /api/me.
+                        .requestMatchers("/api/me/**").hasRole("MEMBER")
+                        .anyRequest().permitAll())
+                .authenticationManager(members)
+                .formLogin(form -> form
+                        .loginProcessingUrl("/api/session")
+                        .usernameParameter("email")
+                        .passwordParameter("password")
+                        .successHandler((request, response, authentication) ->
+                                response.setStatus(HttpStatus.NO_CONTENT.value()))
+                        .failureHandler((request, response, exception) -> {
+                            // The same sentence whether the 電子郵件 is unknown or
+                            // the 密碼 is wrong, so this cannot be used to find
+                            // out who holds an account here.
+                            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding("UTF-8");
+                            response.getWriter().write(
+                                    "{\"error\":{\"code\":\"BAD_CREDENTIALS\","
+                                            + "\"message\":\"帳號或密碼不正確\"}}");
+                        }))
+                .logout(logout -> logout
+                        .logoutUrl("/api/session/logout")
+                        .logoutSuccessHandler((request, response, authentication) ->
+                                response.setStatus(HttpStatus.NO_CONTENT.value()))
+                        .deleteCookies("JSESSIONID")
+                        .invalidateHttpSession(true))
+                // 401 rather than a redirect: this chain only ever answers the
+                // Next.js server, which reads status codes.
+                .exceptionHandling(handling -> handling
+                        .authenticationEntryPoint(
+                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                /*
+                 * CSRF is off on this chain because no browser ever holds this
+                 * session cookie. The JSESSIONID is issued to the Next.js
+                 * server, which keeps it in an httpOnly cookie on its own origin
+                 * and attaches it server-side; a page on another site cannot
+                 * make a browser send it here, because the browser does not have
+                 * it to send.
+                 *
+                 * The forgery surface is therefore the Next.js server action,
+                 * which Next guards with its own Origin check. If a browser is
+                 * ever pointed straight at this API, CSRF has to come back on
+                 * with it.
+                 */
+                .csrf(csrf -> csrf.disable())
                 .build();
+    }
+
+    private DaoAuthenticationProvider daoProvider(UserDetailsService users) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(users);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
     }
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
+import { signOut } from "@/lib/auth";
 import styles from "./SiteHeader.module.css";
 
 const NAV_LINKS = [
@@ -80,12 +81,16 @@ export function SiteHeader({
           ) : null}
 
           {loggedIn ? (
-            <button
-              type="button"
-              className={`btn btn-ghost ${styles.onDark} ${styles.signOut}`}
-            >
-              登出
-            </button>
+            // A Server Action, so 登出 destroys the session on the server
+            // rather than merely hiding the button.
+            <form action={signOut}>
+              <button
+                type="submit"
+                className={`btn btn-ghost ${styles.onDark} ${styles.signOut}`}
+              >
+                登出
+              </button>
+            </form>
           ) : (
             <Link
               href="/login"

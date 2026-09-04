@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import tw.bookprice.member.EmailAlreadyRegisteredException;
 
 /**
  * Turns failures under /api into the shared error body, so no controller has to
@@ -59,6 +60,14 @@ public class ApiExceptionHandler {
         return ResponseEntity.badRequest()
                 .body(ApiErrorResponse.of("BAD_REQUEST",
                         "參數 " + exception.getName() + " 的值不正確: " + exception.getValue()));
+    }
+
+    /** 註冊 with an 電子郵件 that already has an 帳號 — a conflict, not a failure. */
+    @ExceptionHandler(EmailAlreadyRegisteredException.class)
+    public ResponseEntity<ApiErrorResponse> handleDuplicateEmail(
+            EmailAlreadyRegisteredException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiErrorResponse.of("EMAIL_TAKEN", exception.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

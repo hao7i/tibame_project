@@ -1,0 +1,146 @@
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 520px;
+}
+
+/* — left column: the dark 會員功能 field — */
+.pitch {
+  background: var(--color-accent-900);
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.kicker {
+  color: var(--color-accent-300);
+  margin-bottom: 12px;
+}
+
+.pitchHeading {
+  color: var(--color-bg);
+  font-size: 34px;
+  max-width: 320px;
+  margin: 0;
+}
+
+.benefits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--color-accent-200);
+  font-size: 13px;
+  line-height: 1.9;
+}
+
+.benefits li::before {
+  content: "· ";
+}
+
+/* — right column: the form — */
+.formColumn {
+  padding: 48px 44px;
+  display: flex;
+  align-items: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.formTitle {
+  margin-bottom: 2px;
+}
+
+.hint {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  margin: 0 0 6px;
+}
+
+.error {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--color-bg);
+  background: var(--color-accent-700);
+}
+
+.input {
+  min-height: 42px;
+}
+
+.remember {
+  margin-top: 2px;
+}
+
+.submit {
+  min-height: 44px;
+}
+
+.links {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+/* 註冊新帳號 swaps the form rather than navigating, so it is a button wearing
+   the appearance of the link the design draws beside 忘記密碼. */
+.linkButton {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: var(--color-accent-700);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  color: var(--color-accent);
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .pitch {
+    padding: 30px 20px;
+    gap: 14px;
+  }
+
+  .pitchHeading {
+    font-size: 22px;
+    max-width: none;
+  }
+
+  /* The design drops the benefit list on a narrow screen: the block is a
+     header there, not half the page. */
+  .benefits {
+    display: none;
+  }
+
+  .formColumn {
+    padding: 24px 16px 32px;
+  }
+
+  .form {
+    gap: 14px;
+    max-width: none;
+  }
+
+  .input {
+    min-height: 44px;
+  }
+
+  .submit {
+    min-height: 46px;
+  }
+}
