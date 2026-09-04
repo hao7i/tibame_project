@@ -144,3 +144,15 @@
     min-height: 46px;
   }
 }
+
+/* — 空白欄位 警告彈窗 — */
+
+/* .dialog sets display:flex, which beats the UA rule that keeps a closed
+   <dialog> hidden, so it has to be restated here. */
+.warning:not([open]) {
+  display: none;
+}
+
+.warning::backdrop {
+  background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
+}

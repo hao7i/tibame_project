@@ -435,7 +435,9 @@ textarea.input {
   gap: var(--space-3);
   padding: var(--space-4);
   border-radius: 0;
-  background: transparent;
+  /* The 設計系統 fills this with --color-surface; the port had it transparent,
+     which over the 50% backdrop left the text unreadable. */
+  background: var(--color-surface);
   border: 1px solid var(--color-divider);
   box-shadow: var(--shadow-lg);
 }
