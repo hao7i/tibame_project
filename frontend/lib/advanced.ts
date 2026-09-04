@@ -1,12 +1,7 @@
 import type { Channel } from "@/lib/api";
 
 /**
- * 進階搜尋 的條件與它的兩種寫法.
- *
- * The 查詢式預覽 the reader reads and the URL the 搜尋結果 page is fetched with are
- * built from this one module, on purpose: they are two renderings of the same
- * conditions, and if they were written separately the preview could promise a
- * search the results page never ran.
+ * 進階搜尋 的條件, and the 搜尋結果 URL they turn into.
  *
  * The UI shows 中文 labels (書名, 金石堂) while the URL carries the codes the API
  * understands (title, KINGSTONE), so a label can be reworded without breaking a
@@ -57,54 +52,8 @@ export const EMPTY_ADVANCED: AdvancedConditions = {
   channels: [],
 };
 
-function labelOf(
-  options: readonly { value: string; label: string }[],
-  value: string,
-): string {
-  return options.find((option) => option.value === value)?.label ?? value;
-}
-
-/**
- * The 查詢式預覽 string, e.g.
- * `書名:"習慣" AND 出版社:"天下" AND price:[100 TO 400] AND shop:(金石堂 OR 墊腳石)`.
- *
- * A row with a blank 關鍵字 is not a condition, so it drops out and takes its
- * 布林 operator with it — which is exactly what the API does with it, and why
- * the preview can be trusted as a description of the search.
- */
-export function previewQuery(
-  conditions: AdvancedConditions,
-  channels: Channel[],
-): string {
-  const rows = [
-    { field: conditions.field1, term: conditions.term1.trim(), op: "" },
-    { field: conditions.field2, term: conditions.term2.trim(), op: conditions.op },
-  ].filter((row) => row.term !== "");
-
-  const fielded = rows
-    .map((row, index) => {
-      const prefix = index === 0 ? "" : `${row.op} `;
-      return `${prefix}${labelOf(SEARCH_FIELDS, row.field)}:"${row.term}"`;
-    })
-    .join(" ");
-
-  let query = fielded || "*";
-
-  if (conditions.minPrice || conditions.maxPrice) {
-    query += ` AND price:[${conditions.minPrice || "*"} TO ${conditions.maxPrice || "*"}]`;
-  }
-  if (conditions.year) {
-    query += ` AND year:"${labelOf(YEARS, conditions.year)}"`;
-  }
-  if (conditions.channels.length > 0) {
-    const names = conditions.channels.map(
-      (code) => channels.find((channel) => channel.code === code)?.name ?? code,
-    );
-    query += ` AND shop:(${names.join(" OR ")})`;
-  }
-
-  return query;
-}
+/* previewQuery and its labelOf helper lived here until the 查詢式預覽 卡 was
+   removed from 進階搜尋; nothing renders 中文 labels from this module any more. */
 
 /** The same conditions as the 搜尋結果 URL the 執行搜尋 button navigates to. */
 export function advancedToParams(

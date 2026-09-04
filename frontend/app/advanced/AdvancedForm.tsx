@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
-import { BlueprintCorners } from "@/components/Blueprint";
 import type { Channel } from "@/lib/api";
 import {
   BOOLEAN_OPS,
@@ -11,7 +10,6 @@ import {
   SEARCH_FIELDS,
   YEARS,
   advancedToParams,
-  previewQuery,
   type AdvancedConditions,
 } from "@/lib/advanced";
 import styles from "./advanced.module.css";
@@ -21,8 +19,7 @@ import styles from "./advanced.module.css";
  *
  * Held in component state rather than in the URL, unlike every other screen:
  * these conditions are being composed, not applied. Nothing is searched until
- * 執行搜尋, and only then do they become the URL of the 搜尋結果 page — which is
- * what makes that page's result the answer to exactly what 查詢式預覽 showed.
+ * 執行搜尋, and only then do they become the URL of the 搜尋結果 page.
  */
 export function AdvancedForm({ channels }: { channels: Channel[] }) {
   const router = useRouter();
@@ -153,9 +150,8 @@ export function AdvancedForm({ channels }: { channels: Channel[] }) {
 
 
         <div className={styles.actions}>
-          <button type="submit" className={`btn btn-primary blueprint ${styles.run}`}>
+          <button type="submit" className={`btn btn-primary ${styles.run}`}>
             執行搜尋
-            <BlueprintCorners />
           </button>
           <Link href="/" className={`btn btn-secondary ${styles.run}`}>
             回簡易搜尋
@@ -164,21 +160,11 @@ export function AdvancedForm({ channels }: { channels: Channel[] }) {
       </div>
 
       <aside>
-        <div className="card blueprint">
-          <span className="card-kicker">查詢式預覽</span>
-          {/* Live, and the same string the URL is built from — so what the
-              reader is promised here is what the results page answers. */}
-          <p className={styles.preview}>{previewQuery(conditions, channels)}</p>
-          <div className="card-meta">系統會依此條件向各通路取價</div>
-          <BlueprintCorners />
-        </div>
-
-        <div className={`card blueprint ${styles.note}`}>
+        <div className={styles.note}>
           <span className="card-kicker">說明</span>
           <p className="card-body">
             以 AND／OR／NOT 串接欄位條件；價格區間比對的是各通路目前售價，未勾選通路表示全部收錄通路。
           </p>
-          <BlueprintCorners />
         </div>
       </aside>
     </form>

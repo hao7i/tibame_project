@@ -32,9 +32,13 @@
 }
 
 /* — 未登入 and empty states — */
+/* Keeps the card stacking without the card frame. */
 .locked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   max-width: 480px;
-  padding: var(--space-8);
+  padding: var(--space-8) 0;
 }
 
 .empty {
@@ -42,7 +46,13 @@
   padding: var(--space-8);
 }
 
-.lockedCta,
+/* Split from .emptyCta: only the 會員專屬功能 block centres its CTA, and the
+   extra space above it replaces the frame that used to close the block off. */
+.lockedCta {
+  align-self: center;
+  margin-top: var(--space-6);
+}
+
 .emptyCta {
   align-self: flex-start;
 }

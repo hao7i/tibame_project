@@ -57,7 +57,8 @@ export default async function WatchPage() {
 function LockedCard() {
   return (
     <div className={styles.page}>
-      <Blueprint className={`card ${styles.locked}`}>
+      {/* No .card and no blueprint 框: this block carries no border at all. */}
+      <div className={styles.locked}>
         <span className="card-kicker">會員專屬功能</span>
         <span className="card-title">追蹤清單需要登入</span>
         <p className="card-body">
@@ -66,7 +67,7 @@ function LockedCard() {
         <Link href="/login" className={`btn btn-primary ${styles.lockedCta}`}>
           登入 / 註冊
         </Link>
-      </Blueprint>
+      </div>
     </div>
   );
 }

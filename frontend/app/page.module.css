@@ -20,7 +20,10 @@
   margin-bottom: var(--space-6);
 }
 
+/* 18px matches the 原型 hero, where the 熱門搜尋 row carries margin-top:18px.
+   The port had dropped it, leaving the row flush against the 搜尋 box. */
 .hot {
+  margin-top: 18px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;

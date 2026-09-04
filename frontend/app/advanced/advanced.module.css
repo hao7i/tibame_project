@@ -99,16 +99,12 @@
   padding-inline: 30px;
 }
 
-.preview {
-  font-family: var(--font-mono);
-  font-size: 12.5px;
-  line-height: 1.7;
-  margin: 0;
-  word-break: break-all;
-}
-
+/* Not a .card any more: the frame and the 註冊記號 both came off, so 說明 keeps
+   only the stacking the card used to give it. */
 .note {
-  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 @media (max-width: 860px) {
@@ -142,10 +138,6 @@
 
   .channels {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .preview {
-    color: var(--color-accent-700);
   }
 
   .actions {
