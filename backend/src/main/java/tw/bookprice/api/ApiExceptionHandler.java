@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * Turns failures under /api into the shared error body, so no controller has to
@@ -42,6 +43,22 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleBadRequest(IllegalArgumentException exception) {
         return ResponseEntity.badRequest()
                 .body(ApiErrorResponse.of("BAD_REQUEST", exception.getMessage()));
+    }
+
+    /**
+     * A numeric parameter that is not a number — /api/works?page=x from a
+     * hand-edited or stale link.
+     *
+     * Handled explicitly because MethodArgumentTypeMismatchException descends
+     * from BeansException, not IllegalArgumentException, so the handler above
+     * does not catch it and it would otherwise be reported as a 500.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException exception) {
+        return ResponseEntity.badRequest()
+                .body(ApiErrorResponse.of("BAD_REQUEST",
+                        "參數 " + exception.getName() + " 的值不正確: " + exception.getValue()));
     }
 
     @ExceptionHandler(Exception.class)

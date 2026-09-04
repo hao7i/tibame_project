@@ -45,7 +45,8 @@ class CatalogueSearchApiTest {
         mockMvc.perform(get("/api/works"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(6))
-                .andExpect(jsonPath("$.works.length()").value(6))
+                // total counts every match; works holds one page of them.
+                .andExpect(jsonPath("$.works.length()").value(4))
                 .andExpect(jsonPath("$.query").doesNotExist())
                 .andExpect(jsonPath("$.fetchedAt").exists());
     }

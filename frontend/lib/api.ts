@@ -79,9 +79,23 @@ export type WorkSummary = {
 export type SearchResponse = {
   /** Absent when the caller asked for 全部收錄書籍. */
   query?: string;
+  /** Every match after 篩選, before 分頁. */
   total: number;
+  page: number;
+  pageSize: number;
+  /** 0 when nothing matched. */
+  totalPages: number;
   fetchedAt?: string;
   works: WorkSummary[];
+};
+
+/**
+ * 篩選條件 options with counts that ignore the 搜尋 term and the other facets,
+ * but do respect the active 載體 — hence their own endpoint.
+ */
+export type Facets = {
+  channels: { code: string; name: string; count: number }[];
+  categories: { name: string; count: number }[];
 };
 
 export type Channel = {
@@ -102,22 +116,45 @@ async function getJson<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-/**
- * 搜尋 by 書名, 作者, 出版社 or ISBN.
- *
- * @param query  omit for 全部收錄書籍
- * @param format 載體 to narrow to; omit for 全部版本
- */
+/** Everything the 搜尋結果 screen can ask for, as it arrives from the URL. */
+export type WorkSearchParams = {
+  /** omit for 全部收錄書籍 */
+  q?: string;
+  /** 載體; omit for 全部版本 */
+  format?: string;
+  /** 通路 codes; OR within the group */
+  channel?: string[];
+  /** 分類 names; OR within the group */
+  category?: string[];
+  /** 價格上限, applied to the computed 最低價 */
+  maxPrice?: string;
+  /** 1-based; the backend clamps out-of-range values */
+  page?: string;
+};
+
+/** 搜尋 by 書名, 作者, 出版社 or ISBN, narrowed by 載體, 通路, 分類 and 價格上限. */
 export function searchWorks(
-  query?: string,
-  format?: string,
+  search: WorkSearchParams = {},
 ): Promise<SearchResponse> {
   const params = new URLSearchParams();
-  if (query) {
-    params.set("q", query);
+
+  if (search.q) {
+    params.set("q", search.q);
   }
-  if (format) {
-    params.set("format", format);
+  if (search.format) {
+    params.set("format", search.format);
+  }
+  if (search.maxPrice) {
+    params.set("maxPrice", search.maxPrice);
+  }
+  if (search.page) {
+    params.set("page", search.page);
+  }
+  for (const code of search.channel ?? []) {
+    params.append("channel", code);
+  }
+  for (const name of search.category ?? []) {
+    params.append("category", name);
   }
 
   const queryString = params.toString();
@@ -128,6 +165,12 @@ export function searchWorks(
 
 export function listChannels(): Promise<Channel[]> {
   return getJson<Channel[]>("/api/channels");
+}
+
+export function listFacets(format?: string): Promise<Facets> {
+  return getJson<Facets>(
+    format ? `/api/facets?format=${encodeURIComponent(format)}` : "/api/facets",
+  );
 }
 
 /**

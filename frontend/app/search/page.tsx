@@ -1,17 +1,14 @@
 import Link from "next/link";
-import { Plus, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Star, X } from "lucide-react";
 import { Blueprint, BlueprintCorners } from "@/components/Blueprint";
 import { SearchForm } from "@/components/SearchForm";
-import { listChannels, searchWorks, type Channel, type WorkSummary } from "@/lib/api";
+import { listFacets, searchWorks, type Facets, type WorkSummary } from "@/lib/api";
+import { FacetRail } from "./FacetRail";
+import { PRICE_CEILING } from "@/lib/filters";
 import styles from "./search.module.css";
-
-/** The 分類 facet group, fixed by the design rather than derived. */
-const CATEGORIES = ["心理勵志", "人文史地", "藝術設計"];
 
 /** 呈現方式. 卡片 and 表格 arrive with the card-and-table work. */
 const VIEWS = ["列表", "卡片", "表格"];
-
-const PRICE_CEILING = { min: 150, max: 700, step: 10 };
 
 /** Only the first four 通路 pairs are shown; the rest live in the detail screen. */
 const MAX_CHANNEL_PAIRS = 4;
@@ -22,20 +19,35 @@ type SearchPageProps = {
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
+
   const query = firstValue(params.q);
   const format = firstValue(params.format);
+  const channels = allValues(params.channel);
+  const categories = allValues(params.category);
+  const maxPrice = firstValue(params.maxPrice);
+  const page = firstValue(params.page);
 
-  const [results, channels] = await Promise.all([
-    searchWorks(query, format),
-    listChannels(),
+  const [results, facets] = await Promise.all([
+    searchWorks({ q: query, format, channel: channels, category: categories, maxPrice, page }),
+    listFacets(format),
   ]);
+
+  const chips = activeChips(
+    { channels, categories, maxPrice, query, format },
+    facets,
+  );
 
   return (
     <>
-      <SearchForm variant="bar" query={query} format={format} />
+      <SearchForm
+        variant="bar"
+        query={query}
+        format={format}
+        filters={{ channels, categories, maxPrice }}
+      />
 
       <div className={styles.layout}>
-        <FacetRail channels={channels} works={results.works} />
+        <FacetRail facets={facets} />
 
         <section className={styles.results}>
           <header className={styles.head}>
@@ -68,11 +80,27 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </div>
           </header>
 
+          {chips.length > 0 ? (
+            <div className={styles.chips}>
+              {chips.map((chip) => (
+                <Link
+                  key={chip.key}
+                  href={chip.href}
+                  className={`tag tag-accent ${styles.chip}`}
+                  aria-label={`移除篩選條件 ${chip.label}`}
+                >
+                  {chip.label}
+                  <X size={12} strokeWidth={1.5} />
+                </Link>
+              ))}
+            </div>
+          ) : null}
+
           {results.works.length === 0 ? (
             <Blueprint className={`card ${styles.empty}`}>
               <p className="card-title">找不到符合的作品</p>
               <p className="card-body">
-                換一個書名、作者、出版社或 ISBN 再試一次。
+                換一個書名、作者、出版社或 ISBN 再試一次，或放寬左側的篩選條件。
               </p>
             </Blueprint>
           ) : (
@@ -82,85 +110,17 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               ))}
             </ol>
           )}
+
+          {results.totalPages > 1 ? (
+            <Pagination
+              page={results.page}
+              totalPages={results.totalPages}
+              params={params}
+            />
+          ) : null}
         </section>
       </div>
     </>
-  );
-}
-
-/**
- * 通路 and 分類 facets with live counts over the current result set.
- *
- * The counts are real; the controls are not wired yet — selecting a facet, the
- * price ceiling and the active-filter chips all arrive with the facets and
- * pagination work, which is what owns the OR-within/AND-across semantics.
- */
-function FacetRail({
-  channels,
-  works,
-}: {
-  channels: Channel[];
-  works: WorkSummary[];
-}) {
-  const channelCounts = channels.map((channel) => ({
-    label: channel.name,
-    count: works.filter((work) =>
-      work.channelPrices.some((price) => price.channel === channel.name),
-    ).length,
-  }));
-
-  const categoryCounts = CATEGORIES.map((category) => ({
-    label: category,
-    count: works.filter((work) => work.category === category).length,
-  }));
-
-  return (
-    <aside className={styles.rail}>
-      <h6 className={styles.railTitle}>篩選條件</h6>
-
-      <FacetGroup name="通路" options={channelCounts} />
-      <FacetGroup name="分類" options={categoryCounts} />
-
-      <div className={styles.ceiling}>
-        <label className={styles.ceilingLabel} htmlFor="price-ceiling">
-          價格上限 NT$ {PRICE_CEILING.max}
-        </label>
-        <input
-          id="price-ceiling"
-          type="range"
-          className={styles.range}
-          min={PRICE_CEILING.min}
-          max={PRICE_CEILING.max}
-          step={PRICE_CEILING.step}
-          defaultValue={PRICE_CEILING.max}
-        />
-      </div>
-
-      <button type="button" className="btn btn-secondary btn-block">
-        清除篩選
-      </button>
-    </aside>
-  );
-}
-
-function FacetGroup({
-  name,
-  options,
-}: {
-  name: string;
-  options: { label: string; count: number }[];
-}) {
-  return (
-    <div className={styles.facetGroup}>
-      <p className={styles.facetName}>{name}</p>
-      {options.map((option) => (
-        <label key={option.label} className={styles.facet}>
-          <input type="checkbox" className={styles.checkbox} name={name} />
-          <span className={styles.facetLabel}>{option.label}</span>
-          <span className={styles.facetCount}>{option.count}</span>
-        </label>
-      ))}
-    </div>
   );
 }
 
@@ -243,6 +203,166 @@ function ResultRow({ work }: { work: WorkSummary }) {
   );
 }
 
+function Pagination({
+  page,
+  totalPages,
+  params,
+}: {
+  page: number;
+  totalPages: number;
+  params: { [key: string]: string | string[] | undefined };
+}) {
+  const pageHref = (target: number) => {
+    const next = toParams(params);
+    if (target <= 1) {
+      next.delete("page");
+    } else {
+      next.set("page", String(target));
+    }
+    const queryString = next.toString();
+    return queryString ? `/search?${queryString}` : "/search";
+  };
+
+  const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
+
+  return (
+    <nav className={styles.pagination} aria-label="分頁">
+      {page > 1 ? (
+        <Link href={pageHref(page - 1)} className="btn btn-secondary">
+          <ChevronLeft size={16} strokeWidth={1.5} />
+          上一頁
+        </Link>
+      ) : (
+        <button type="button" className="btn btn-secondary" disabled>
+          <ChevronLeft size={16} strokeWidth={1.5} />
+          上一頁
+        </button>
+      )}
+
+      {pages.map((target) => (
+        <Link
+          key={target}
+          href={pageHref(target)}
+          aria-current={target === page ? "page" : undefined}
+          className={`btn btn-secondary ${styles.pageLink} ${
+            target === page ? styles.pageCurrent : ""
+          }`}
+        >
+          {target}
+        </Link>
+      ))}
+
+      {page < totalPages ? (
+        <Link href={pageHref(page + 1)} className="btn btn-secondary">
+          下一頁
+          <ChevronRight size={16} strokeWidth={1.5} />
+        </Link>
+      ) : (
+        <button type="button" className="btn btn-secondary" disabled>
+          下一頁
+          <ChevronRight size={16} strokeWidth={1.5} />
+        </button>
+      )}
+
+      <span className={styles.pageCount}>
+        第 {page} 頁 / 共 {totalPages} 頁
+      </span>
+    </nav>
+  );
+}
+
+type Chip = { key: string; label: string; href: string };
+
+/**
+ * The active-filter chips, which mirror the rail and remove one condition each.
+ *
+ * They are plain links rather than part of the client rail: removing a filter is
+ * a one-shot navigation, and both read the same URL, so they cannot drift apart.
+ */
+function activeChips(
+  selection: {
+    channels: string[];
+    categories: string[];
+    maxPrice?: string;
+    query?: string;
+    format?: string;
+  },
+  facets: Facets,
+): Chip[] {
+  // 搜尋 term and 載體 are not 篩選條件, so every chip link carries them onward;
+  // page is always dropped, since removing a filter can shrink the page count.
+  const hrefWithout = (key: string, value: string) => {
+    const params = new URLSearchParams();
+    if (selection.query) {
+      params.set("q", selection.query);
+    }
+    if (selection.format) {
+      params.set("format", selection.format);
+    }
+    for (const code of selection.channels) {
+      if (!(key === "channel" && code === value)) {
+        params.append("channel", code);
+      }
+    }
+    for (const name of selection.categories) {
+      if (!(key === "category" && name === value)) {
+        params.append("category", name);
+      }
+    }
+    if (selection.maxPrice && key !== "maxPrice") {
+      params.set("maxPrice", selection.maxPrice);
+    }
+
+    const queryString = params.toString();
+    return queryString ? `/search?${queryString}` : "/search";
+  };
+
+  const chips: Chip[] = [];
+
+  for (const code of selection.channels) {
+    const name = facets.channels.find((channel) => channel.code === code)?.name ?? code;
+    chips.push({
+      key: `channel-${code}`,
+      label: name,
+      href: hrefWithout("channel", code),
+    });
+  }
+
+  for (const name of selection.categories) {
+    chips.push({
+      key: `category-${name}`,
+      label: name,
+      href: hrefWithout("category", name),
+    });
+  }
+
+  if (selection.maxPrice && Number(selection.maxPrice) < PRICE_CEILING.max) {
+    chips.push({
+      key: "maxPrice",
+      label: `價格上限 NT$ ${selection.maxPrice}`,
+      href: hrefWithout("maxPrice", selection.maxPrice),
+    });
+  }
+
+  return chips;
+}
+
+function toParams(params: {
+  [key: string]: string | string[] | undefined;
+}): URLSearchParams {
+  const result = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        result.append(key, entry);
+      }
+    } else if (value !== undefined) {
+      result.set(key, value);
+    }
+  }
+  return result;
+}
+
 /** The design writes this as 「作者 / 出版社, 出版年」. */
 function byline(work: WorkSummary): string {
   return `${work.author} / ${work.publisher}, ${work.publicationYear}`;
@@ -271,4 +391,12 @@ function formatFetchedAt(iso?: string): string {
 /** A query string can repeat a key; the screens only ever mean the first one. */
 function firstValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+/** Facet groups are multi-select, so every value counts. */
+function allValues(value: string | string[] | undefined): string[] {
+  if (value === undefined) {
+    return [];
+  }
+  return Array.isArray(value) ? value : [value];
 }
