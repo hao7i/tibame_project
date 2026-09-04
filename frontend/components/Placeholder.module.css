@@ -1,0 +1,11 @@
+.page {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 52px var(--page-pad) 44px;
+}
+
+@media (max-width: 860px) {
+  .page {
+    padding: 30px 16px 36px;
+  }
+}

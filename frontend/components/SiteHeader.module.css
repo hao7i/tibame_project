@@ -1,0 +1,151 @@
+/*
+ * Desktop: .nav at 14px 28px on a full-bleed --color-accent-900 field.
+ * Mobile (<= --bp-mobile): 13px 16px, hamburger + brand + actions.
+ * Links on the dark bar use --color-accent-300, never --color-accent:
+ * the accent does not carry enough contrast against accent-900.
+ */
+
+.bar {
+  background: var(--color-accent-900);
+  color: var(--color-bg);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 14px var(--page-pad);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: baseline;
+  margin-right: auto;
+  color: var(--color-bg);
+  text-decoration: none;
+}
+
+.brandName {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.brandDomain {
+  margin-left: 9px;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--color-accent-300);
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.link {
+  font-size: 14px;
+  color: var(--color-bg);
+  text-decoration: none;
+}
+
+.link:hover,
+.link[aria-current="page"] {
+  color: var(--color-accent-300);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.watchCount {
+  font-size: 13px;
+  color: var(--color-accent-300);
+}
+
+.signIn {
+  color: var(--color-bg);
+  border-color: var(--color-accent-600);
+}
+
+.signIn:hover {
+  background: color-mix(in srgb, var(--color-bg) 12%, transparent);
+}
+
+.signOut {
+  color: var(--color-accent-300);
+}
+
+.signOut:hover {
+  background: color-mix(in srgb, var(--color-bg) 12%, transparent);
+}
+
+/* The global focus ring is --color-accent, which disappears against the
+   accent-900 bar; step it up to accent-300 here. */
+.bar :focus-visible {
+  outline-color: var(--color-accent-300);
+}
+
+.hamburger {
+  display: none;
+  color: var(--color-bg);
+  border-color: transparent;
+}
+
+.hamburger:hover {
+  background: color-mix(in srgb, var(--color-bg) 12%, transparent);
+}
+
+.mobileMenu {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .inner {
+    padding: 13px 16px;
+    gap: var(--space-3);
+  }
+
+  .hamburger {
+    display: inline-flex;
+  }
+
+  .brandName {
+    font-size: 16px;
+  }
+
+  .brandDomain {
+    display: none;
+  }
+
+  .links {
+    display: none;
+  }
+
+  .mobileMenu {
+    display: flex;
+    flex-direction: column;
+    padding: 0 16px 12px;
+    gap: 2px;
+  }
+
+  .mobileLink {
+    padding: 10px 2px;
+    font-size: 15px;
+    color: var(--color-bg);
+    text-decoration: none;
+    border-top: 1px solid color-mix(in srgb, var(--color-bg) 18%, transparent);
+  }
+
+  .mobileLink:hover,
+  .mobileLink[aria-current="page"] {
+    color: var(--color-accent-300);
+  }
+}
