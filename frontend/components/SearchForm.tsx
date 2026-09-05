@@ -1,12 +1,25 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
 import styles from "./SearchForm.module.css";
 
 /**
  * The 搜尋 entry point, in the two shapes the design draws it: the tall row in
  * the 首頁 hero and the compact bar above the 搜尋結果.
  *
- * It is a plain GET form, so 搜尋 works with no client JavaScript at all and the
- * resulting URL is the whole state — which is what the results screen reads.
+ * Still a real GET form pointed at /search, so the URL remains the whole state
+ * and 搜尋 keeps working with no client JavaScript at all. What the submit
+ * handler adds is that, when JavaScript is there, the browser navigates through
+ * the router instead of loading a whole new document.
+ *
+ * That distinction matters because of 找書: it runs for about a minute inside
+ * the page that started it, and a full document load tears that page down — the
+ * run is cut off and the notification never arrives. Router navigation keeps the
+ * LookupProvider in the layout alive, so the reader can go on searching while a
+ * 找書 finishes. Every other way off this screen (熱門搜尋 tags, chips, 分頁,
+ * 進階搜尋) already navigates client-side; this form was the one exception.
  */
 type SearchFormProps = {
   /** hero = 首頁 band; bar = the row above 搜尋結果. */
@@ -22,12 +35,31 @@ type SearchFormProps = {
 };
 
 export function SearchForm({ variant, query = "", filters }: SearchFormProps) {
+  const router = useRouter();
   const isHero = variant === "hero";
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    // Read from the form itself rather than from props: the hidden 篩選條件 and
+    // the typed 書名 are then gathered by exactly the rule the plain GET
+    // fallback would use, so the two paths cannot drift apart.
+    const params = new URLSearchParams();
+    for (const [key, value] of new FormData(event.currentTarget).entries()) {
+      if (typeof value === "string" && value.trim()) {
+        params.append(key, value.trim());
+      }
+    }
+
+    const queryString = params.toString();
+    router.push(queryString ? `/search?${queryString}` : "/search");
+  };
 
   return (
     <form
       action="/search"
       method="get"
+      onSubmit={submit}
       className={isHero ? styles.hero : styles.bar}
       role="search"
     >
