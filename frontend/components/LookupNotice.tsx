@@ -70,7 +70,7 @@ export function LookupProvider({ children }: { children: ReactNode }) {
         .then((imported) => {
           if (imported > 0) {
             notification.success({
-              message: "找到了",
+              title: "找到了",
               description: `收錄了 ${imported} 本書，價格也一併取回來了。`,
               placement: "top",
             });
@@ -79,7 +79,7 @@ export function LookupProvider({ children }: { children: ReactNode }) {
             router.refresh();
           } else {
             notification.info({
-              message: "找書完成",
+              title: "找書完成",
               description: "各通路都沒有這個書名或 ISBN 的書。",
               placement: "top",
             });
@@ -87,7 +87,7 @@ export function LookupProvider({ children }: { children: ReactNode }) {
         })
         .catch(() => {
           notification.error({
-            message: "找書失敗",
+            title: "找書失敗",
             description: "請稍後再試一次。",
             placement: "top",
           });

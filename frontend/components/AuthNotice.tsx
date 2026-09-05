@@ -64,7 +64,7 @@ export function AuthNotice() {
 
     const notice = NOTICES[key];
     notification[notice.type]({
-      message: notice.title,
+      title: notice.title,
       description: notice.body,
       placement: "top",
     });
