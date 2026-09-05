@@ -1,4 +1,4 @@
-# tibame_project — 書籍比價入口網站（Book Price Portal）
+# 書籍比價入口網站（Book Price Portal）
 
 聚合**五家**台灣網路書店（五南文化廣場／三民網路書店／金石堂／讀冊生活／墊腳石）單一書籍售價的
 繁體中文響應式比價網站。使用者可依書名／作者／出版社／ISBN 搜尋、逐通路比價，登入後可追蹤書籍、
@@ -284,31 +284,6 @@ Web API Controller ─┘
 - **其餘刻意偏離設計稿之處見上方那一節**，該節優先於這裡的「以 README 為準」。
 - 互動狀態（hover / pressed / `:focus-visible` 2px accent 外框）不得留瀏覽器預設值。
 - 呼叫後端一律走 `/api` 的 Web API Controller，不得在前端直接連通路網站。
-
-## Agent skills
-
-### Issue tracker
-
-Issues live as GitHub issues in `hao7i/tibame_project`, managed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
-
-⚠️ **`gh` is not installed on this machine.** The first version's tickets were kept as markdown in
-`.scratch/book-price-portal/issues/` instead, which is gitignored. All eleven are done; work since
-then has come from direct instruction rather than tickets. Do not assume a ticket exists for what
-you are asked to do, and do not go looking for GitHub issues without checking `gh` is available.
-
-### Triage labels
-
-Default five-role vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
-
-⚠️ `CONTEXT.md` still defines **載體(Format)** as 「只有紙本與電子書兩種」, and **ADR 0002** argues
-for the three-layer model on the grounds that 紙本 and 電子書 are two 版本 of one 作品. Both were
-written before 電子書 was removed; the model itself still stands (一個作品可以有多個版本), but that
-particular justification no longer describes the data. `docs/` is out of version control, so neither
-file travels with the repo.
 
 ## 本機環境的已知陷阱
 
