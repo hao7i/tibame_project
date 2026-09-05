@@ -27,6 +27,10 @@ bookprice:
     taaze:
       live: false
 
+    schedule:
+      # 測試不跑排程：背景執行緒去打真實網站不是任何一個測試想驗的事。
+      enabled: false
+
   discovery:
     # 測試一律不得連外網。
     kingstone:

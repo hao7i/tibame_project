@@ -55,7 +55,11 @@ public class BookLookupService {
                 : importService.importByTitle(trimmed, IMPORT_LIMIT);
 
         if (!imported.isEmpty()) {
-            priceRefreshService.refreshAll(false);
+            // Only the books just imported. Refreshing the whole 書目 here made
+            // one reader's click pay for everything else that had gone stale,
+            // and the per-host pause between requests meant that bill grew with
+            // the 書目. What is stale elsewhere is the scheduler's business.
+            priceRefreshService.refreshIsbns(imported);
         }
         return imported;
     }
