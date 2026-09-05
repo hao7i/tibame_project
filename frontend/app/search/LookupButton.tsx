@@ -39,8 +39,10 @@ export function LookupButton({ term }: { term: string }) {
 
       {lookup.running ? (
         <p className="card-meta" role="status">
-          正在向五家通路查詢並取價，通常需要一分鐘上下。這段時間可以繼續瀏覽，
-          找完會通知你。
+          {/* 十來秒 rather than a single figure: 找到一本要六七秒，找到三本要十二秒
+              左右，因為每一本都要再問五家。按鈕上的秒數才是當下的實情——這句話
+              只負責讓讀者知道值不值得等。 */}
+          正在向五家通路查詢並取價，通常十來秒。這段時間可以繼續瀏覽，找完會通知你。
         </p>
       ) : null}
     </div>
