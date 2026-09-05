@@ -9,7 +9,7 @@ import { WatchToggle } from "@/components/WatchToggle";
 import { listWatchItems } from "@/lib/watchlist";
 import { currentMember } from "@/lib/session";
 import { ViewSwitch } from "./ViewSwitch";
-import { DEFAULT_VIEW, PRICE_CEILING, parseView, type ViewValue } from "@/lib/filters";
+import { DEFAULT_VIEW, parseView, type ViewValue } from "@/lib/filters";
 import { isIsbn13 } from "@/lib/isbn";
 import styles from "./search.module.css";
 
@@ -596,14 +596,6 @@ function activeChips(
       key: `channel-${code}`,
       label: name,
       href: hrefWithout("channel", code),
-    });
-  }
-
-  if (selection.maxPrice && Number(selection.maxPrice) < PRICE_CEILING.max) {
-    chips.push({
-      key: "maxPrice",
-      label: `價格上限 NT$ ${selection.maxPrice}`,
-      href: hrefWithout("maxPrice", selection.maxPrice),
     });
   }
 

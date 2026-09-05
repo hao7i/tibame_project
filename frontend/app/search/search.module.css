@@ -67,25 +67,6 @@
   color: color-mix(in srgb, var(--color-text) 55%, transparent);
 }
 
-.ceiling {
-  margin-bottom: 20px;
-}
-
-.ceilingLabel {
-  display: block;
-  font-size: 12px;
-  margin-bottom: 5px;
-  color: color-mix(in srgb, var(--color-text) 70%, transparent);
-}
-
-.range {
-  width: 100%;
-  padding: 0;
-  background: transparent;
-  border: 0;
-  accent-color: var(--color-accent);
-}
-
 /* — result header — */
 .results {
   padding: 22px var(--page-pad) 44px;
@@ -329,8 +310,7 @@
     overflow-x: auto;
   }
 
-  .railTitle,
-  .ceiling {
+  .railTitle {
     display: none;
   }
 

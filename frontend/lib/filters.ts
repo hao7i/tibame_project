@@ -1,14 +1,4 @@
 /**
- * 篩選條件 constants shared by the server-rendered results page and the client
- * facet rail.
- *
- * It lives here, not in FacetRail, because a "use client" module reaches a
- * Server Component as a client-reference proxy: importing this from there gave
- * an undefined max, which silently dropped the 價格上限 chip instead of failing.
- */
-export const PRICE_CEILING = { min: 150, max: 1500, step: 10 };
-
-/**
  * 呈現方式 — 列表 / 卡片 / 表格.
  *
  * The URL carries the ASCII value while the UI shows the 中文 label, so the

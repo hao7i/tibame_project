@@ -1,17 +1,16 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Facets } from "@/lib/api";
-import { PRICE_CEILING } from "@/lib/filters";
 import styles from "./search.module.css";
 
 /**
  * 篩選條件 — the one interactive island on this screen.
  *
  * The rest of the results page is server-rendered and navigates with plain
- * links; this needs client JavaScript because the design gives the 價格上限 a
- * slider and no 套用 button, so filtering has to happen as the reader moves it.
+ * links; this needs client JavaScript so that a 通路 ticked while the previous
+ * navigation is still in flight is not lost — see the optimistic state below.
  *
  * The URL remains the source of truth, but it only catches up once the server
  * has answered. Selections are therefore held optimistically in the meantime:
@@ -29,9 +28,6 @@ export function FacetRail({ facets }: { facets: Facets }) {
 
   const [, startTransition] = useTransition();
   const [channels, setChannels] = useOptimistic<string[]>(searchParams.getAll("channel"));
-
-  const activeCeiling = searchParams.get("maxPrice");
-  const ceiling = activeCeiling ? Number(activeCeiling) : PRICE_CEILING.max;
 
   const push = (params: URLSearchParams) => {
     params.delete("page");
@@ -54,22 +50,6 @@ export function FacetRail({ facets }: { facets: Facets }) {
       setChannels(next);
       push(params);
     });
-  };
-
-  const commitCeiling = (value: number) => {
-    // Releasing a key or the pointer without having moved the thumb must not
-    // navigate: it would reset 分頁 and push a history entry for nothing.
-    if (value === ceiling) {
-      return;
-    }
-
-    const params = new URLSearchParams(searchParams.toString());
-    if (value >= PRICE_CEILING.max) {
-      params.delete("maxPrice");
-    } else {
-      params.set("maxPrice", String(value));
-    }
-    push(params);
   };
 
   const clearFilters = () => {
@@ -101,50 +81,13 @@ export function FacetRail({ facets }: { facets: Facets }) {
         onToggle={toggleChannel}
       />
 
-      {/* Keyed on the URL value so navigating (a chip, 清除篩選, the back
-          button) remounts it at the new position, instead of syncing state to
-          a prop from inside an effect. */}
-      <PriceCeiling key={activeCeiling ?? "none"} initial={ceiling} onCommit={commitCeiling} />
-
+      {/* 清除篩選 still drops maxPrice: the slider is gone, but a link someone
+          saved while it existed can still carry one, and this is the only way
+          left to get out of it. */}
       <button type="button" className="btn btn-secondary btn-block" onClick={clearFilters}>
         清除篩選
       </button>
     </aside>
-  );
-}
-
-/**
- * 價格上限. The thumb position is local so the label tracks the drag, and the URL
- * is rewritten once, when the reader lets go — dragging otherwise fires a
- * navigation per pixel.
- */
-function PriceCeiling({
-  initial,
-  onCommit,
-}: {
-  initial: number;
-  onCommit: (value: number) => void;
-}) {
-  const [value, setValue] = useState(initial);
-
-  return (
-    <div className={styles.ceiling}>
-      <label className={styles.ceilingLabel} htmlFor="price-ceiling">
-        價格上限 NT$ {value}
-      </label>
-      <input
-        id="price-ceiling"
-        type="range"
-        className={styles.range}
-        min={PRICE_CEILING.min}
-        max={PRICE_CEILING.max}
-        step={PRICE_CEILING.step}
-        value={value}
-        onChange={(event) => setValue(Number(event.target.value))}
-        onPointerUp={() => onCommit(value)}
-        onKeyUp={() => onCommit(value)}
-      />
-    </div>
   );
 }
 
