@@ -32,12 +32,14 @@ export function LookupButton({ term }: { term: string }) {
         onClick={() => lookup.start(term)}
         disabled={lookup.running}
       >
-        {lookup.running ? "查詢各通路中…" : "到各通路找找看"}
+        {/* The count is on the button itself, not only in the sentence below:
+            it is the part that proves something is still happening. */}
+        {lookup.running ? `查詢各通路中… ${lookup.elapsed} 秒` : "到各通路找找看"}
       </button>
 
       {lookup.running ? (
         <p className="card-meta" role="status">
-          正在向五家通路查詢並取價，大約需要一分鐘。這段時間可以繼續瀏覽，
+          正在向五家通路查詢並取價，通常需要一分鐘上下。這段時間可以繼續瀏覽，
           找完會通知你。
         </p>
       ) : null}
