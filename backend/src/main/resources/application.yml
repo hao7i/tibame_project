@@ -41,8 +41,13 @@ bookprice:
   pricing:
     # 誠實表明身分，讓不歡迎這些流量的站方知道要找誰。
     user-agent: "BookPricePortal/0.1 (+https://github.com/hao7i/tibame_project; contact: thishow1107@gmail.com)"
-    # 同一站台兩次請求之間的最小間隔。
-    min-interval-ms: 1500
+    # 同一站台兩次請求之間的最小間隔。**五家的 robots.txt 都沒有宣告 Crawl-delay**
+    # （2026-09 查證），所以這個值是我們自己設的禮貌下限，不是對方的要求。
+    #
+    # 原為 1500，調降至 600：找書幾乎所有的時間都花在這裡等，而每秒不到兩次請求
+    # 對這些站台仍屬極輕的負載。若哪天有通路宣告了 Crawl-delay，那家就該遵守它
+    # 而不是這個值——那時要改成分主機設定，而不是把全體拉回去。
+    min-interval-ms: 600
     # 設計稿的「價格每 6 小時更新一次」；窗內的報價不會再去問一次。
     freshness-hours: 6
     # 真實取價只開這兩家：robots.txt 允許、商品頁為伺服器端渲染且帶 JSON-LD。

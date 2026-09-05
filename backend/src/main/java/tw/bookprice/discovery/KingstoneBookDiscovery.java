@@ -7,6 +7,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -81,28 +85,72 @@ public class KingstoneBookDiscovery implements BookDiscovery {
         List<DiscoveredBook> found = new ArrayList<>();
         Set<String> seenIsbns = new LinkedHashSet<>();
 
-        for (String sku : candidates) {
-            try {
-                String page = fetcher.get(PRODUCT + "/basic/" + sku + "/");
-                KingstoneDiscoveryParsing.parse(page)
-                        // Checked again against the 商品頁, which is the page that
-                        // actually states what the book is: the 搜尋 listing only
-                        // decided this was worth fetching.
-                        .filter(book -> TitleRelevance.matches(title, book.title()))
-                        // The same book reaches the results page more than once
-                        // — 平裝 and a boxed set share an ISBN — and importing it
-                        // twice would violate the unique ISBN on 版本.
-                        .filter(book -> seenIsbns.add(book.isbn()))
-                        .ifPresent(found::add);
-            } catch (RuntimeException cause) {
-                // One dead listing must not lose the other candidates: this is
-                // a best-effort widening of the 書目, not a 取價 whose failure
-                // the reader is waiting on.
-                log.warn("找書失敗: 金石堂 sku {}", sku, cause);
+        // Fetched together, read in order. The fetcher still spaces requests to
+        // 金石堂 by the same interval — it reserves each slot before sleeping, so
+        // the shop sees exactly the rate it saw before — but the network time of
+        // one page now overlaps the wait for the next instead of following it.
+        // Sequentially this was [wait, fetch] three times over; now it is one
+        // run of waits with the fetches tucked inside.
+        for (String page : fetchPages(candidates)) {
+            if (page == null) {
+                continue;
             }
+            KingstoneDiscoveryParsing.parse(page)
+                    // Checked again against the 商品頁, which is the page that
+                    // actually states what the book is: the 搜尋 listing only
+                    // decided this was worth fetching.
+                    .filter(book -> TitleRelevance.matches(title, book.title()))
+                    // The same book reaches the results page more than once
+                    // — 平裝 and a boxed set share an ISBN — and importing it
+                    // twice would violate the unique ISBN on 版本.
+                    .filter(book -> seenIsbns.add(book.isbn()))
+                    .ifPresent(found::add);
         }
 
         return List.copyOf(found);
+    }
+
+    /**
+     * The 商品頁 for each candidate, in the order asked, with null where one could
+     * not be read.
+     *
+     * A dead listing must not lose the others: this is a best-effort widening of
+     * the 書目, not a 取價 whose failure the reader is waiting on. Virtual threads
+     * because each task is a blocked socket, and the ordering is preserved so
+     * that which duplicate ISBN wins does not depend on which page came back
+     * first.
+     */
+    private List<String> fetchPages(List<String> skus) {
+        if (skus.isEmpty()) {
+            return List.of();
+        }
+
+        try (ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<String>> futures = skus.stream()
+                    .map(sku -> pool.submit(() -> {
+                        try {
+                            return fetcher.get(PRODUCT + "/basic/" + sku + "/");
+                        } catch (RuntimeException cause) {
+                            log.warn("找書失敗: 金石堂 sku {}", sku, cause);
+                            return null;
+                        }
+                    }))
+                    .toList();
+
+            List<String> pages = new ArrayList<>(futures.size());
+            for (Future<String> future : futures) {
+                try {
+                    pages.add(future.get());
+                } catch (InterruptedException cause) {
+                    Thread.currentThread().interrupt();
+                    pages.add(null);
+                } catch (ExecutionException cause) {
+                    log.warn("找書任務失敗", cause.getCause());
+                    pages.add(null);
+                }
+            }
+            return pages;
+        }
     }
 
     /** Distinct product numbers whose listing 書名 relates to the search, capped. */
