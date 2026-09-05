@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { App } from "antd";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import styles from "./AuthNotice.module.css";
 
 /**
- * The 註冊 / 登入 / 登出 confirmation popup.
+ * The 註冊 / 登入 / 登出 confirmation.
  *
  * It cannot live on /login: all three succeed by redirecting away from it, so
  * the destination is the only place still on screen when there is something to
@@ -13,11 +13,23 @@ import styles from "./AuthNotice.module.css";
  *
  * Mounted in the root layout so it works wherever the redirect lands — 首頁
  * today, 單書比價 when the reader came through the 追蹤 detour.
+ *
+ * Shown as an antd notification at the top rather than a modal dialog: 登入 and
+ * 登出 succeeded, so there is nothing for the reader to decide and no reason to
+ * make them dismiss anything before carrying on.
  */
 const NOTICES = {
-  registered: { title: "註冊成功", body: "帳號已建立，並且已經為你登入。" },
-  signedIn: { title: "登入成功", body: "歡迎回來。" },
-  signedOut: { title: "已登出", body: "你已經登出，追蹤清單需要重新登入才能查看。" },
+  registered: {
+    type: "success",
+    title: "註冊成功",
+    body: "帳號已建立，並且已經為你登入。",
+  },
+  signedIn: { type: "success", title: "登入成功", body: "歡迎回來。" },
+  signedOut: {
+    type: "info",
+    title: "已登出",
+    body: "你已經登出，追蹤清單需要重新登入才能查看。",
+  },
 } as const;
 
 type NoticeKey = keyof typeof NOTICES;
@@ -27,56 +39,43 @@ function isNoticeKey(value: string | null): value is NoticeKey {
 }
 
 export function AuthNotice() {
+  const { notification } = App.useApp();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const dialogRef = useRef<HTMLDialogElement>(null);
 
   const key = searchParams.get("notice");
-  const notice = isNoticeKey(key) ? NOTICES[key] : null;
+
+  // Which notice has already been announced. Without it a change of
+  // searchParams identity between firing and the URL catching up would announce
+  // the same 登入 twice; reset when the parameter is gone so the next 登入 is
+  // announced normally.
+  const announced = useRef<string | null>(null);
 
   useEffect(() => {
-    if (notice) {
-      dialogRef.current?.showModal();
+    if (!isNoticeKey(key)) {
+      announced.current = null;
+      return;
     }
-  }, [notice]);
+    if (announced.current === key) {
+      return;
+    }
+    announced.current = key;
 
-  if (!notice) {
-    return null;
-  }
+    const notice = NOTICES[key];
+    notification[notice.type]({
+      message: notice.title,
+      description: notice.body,
+      placement: "top",
+    });
 
-  // Dropping the parameter on close means a reload, or a link someone shares,
-  // does not announce a 登入 that happened once, minutes ago.
-  //
-  // Hung on the close event rather than the button so that Esc, which closes a
-  // native dialog on its own, cleans up the same way.
-  const stripNotice = () => {
+    // Dropped as soon as it has been shown, so a reload — or a link someone
+    // shares — does not announce a 登入 that happened once, minutes ago.
     const next = new URLSearchParams(searchParams.toString());
     next.delete("notice");
     const queryString = next.toString();
     router.replace(queryString ? `${pathname}?${queryString}` : pathname);
-  };
+  }, [key, notification, router, pathname, searchParams]);
 
-  return (
-    <dialog
-      ref={dialogRef}
-      className={`dialog ${styles.notice}`}
-      aria-labelledby="auth-notice-title"
-      onClose={stripNotice}
-    >
-      <p id="auth-notice-title" className="dialog-title">
-        {notice.title}
-      </p>
-      <p className="dialog-body">{notice.body}</p>
-      <div className="dialog-actions">
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => dialogRef.current?.close()}
-        >
-          知道了
-        </button>
-      </div>
-    </dialog>
-  );
+  return null;
 }

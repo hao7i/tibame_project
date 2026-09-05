@@ -8,6 +8,8 @@ import { watchCount } from "@/lib/watchlist";
 import { SiteFooter } from "@/components/SiteFooter";
 import { AuthNotice } from "@/components/AuthNotice";
 import { LookupProvider } from "@/components/LookupNotice";
+import { AntdRegistry } from "@ant-design/nextjs-registry";
+import { App as AntdApp } from "antd";
 
 /**
  * next/font downloads these at build time and serves them from our own
@@ -47,21 +49,34 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${barlow.variable} ${barlowCondensed.variable}`}
     >
       <body>
-        {/* Wraps the whole tree because 找書 outlives the screen that starts it:
-            it runs for over a minute, and the reader is free to navigate away
-            while it does. The result finds them wherever they went. */}
-        <LookupProvider>
-          <SiteHeader loggedIn={member !== null} watchCount={tracked} />
-          <main>{children}</main>
-          <SiteFooter />
-        </LookupProvider>
+        {/* antd keeps its styles in CSS-in-JS, so they have to be collected
+            during the server render and injected ahead of the markup that uses
+            them; without this a page using antd flashes unstyled. It emits
+            nothing until an antd component actually renders, so the ported
+            設計系統 is untouched until then. */}
+        <AntdRegistry>
+          {/* Supplies the notification context App.useApp() reads.
+              component={false} so it wraps the tree without adding a div of its
+              own to the 版面. */}
+          <AntdApp component={false}>
+            {/* Wraps the whole tree because 找書 outlives the screen that
+                starts it: it runs for over a minute, and the reader is free to
+                navigate away while it does. The result finds them wherever
+                they went. */}
+            <LookupProvider>
+              <SiteHeader loggedIn={member !== null} watchCount={tracked} />
+              <main>{children}</main>
+              <SiteFooter />
+            </LookupProvider>
 
-        {/* Here rather than on a page: 註冊 / 登入 / 登出 all succeed by
-            redirecting, so the confirmation has to be able to appear wherever
-            they land. Suspense because it reads the query string. */}
-        <Suspense fallback={null}>
-          <AuthNotice />
-        </Suspense>
+            {/* Here rather than on a page: 註冊 / 登入 / 登出 all succeed by
+                redirecting, so the confirmation has to be able to appear
+                wherever they land. Suspense because it reads the query string. */}
+            <Suspense fallback={null}>
+              <AuthNotice />
+            </Suspense>
+          </AntdApp>
+        </AntdRegistry>
       </body>
     </html>
   );
