@@ -104,6 +104,26 @@ export default async function WorkPage({ params }: WorkPageProps) {
   );
 }
 
+/**
+ * 缺貨 reads in red; everything else stays muted.
+ *
+ * Matched by containment rather than equality because the wording is whatever
+ * the 通路 published — 缺貨, 暫時缺貨 and 已售完 have all turned up — and a state
+ * that says the reader cannot buy it should not fall back to looking ordinary
+ * because a shop phrased it differently.
+ */
+const OUT_OF_STOCK = ["缺貨", "售完", "絕版", "無庫存"];
+
+function stockClass(offer: OfferView): string {
+  if (offer.stale) {
+    return styles.muted;
+  }
+  const status = offer.stockStatus ?? "";
+  return OUT_OF_STOCK.some((word) => status.includes(word))
+    ? styles.outOfStock
+    : styles.muted;
+}
+
 function OfferRow({ offer }: { offer: OfferView }) {
   return (
     <tr
@@ -125,7 +145,10 @@ function OfferRow({ offer }: { offer: OfferView }) {
           {offer.stale ? <span className="tag tag-neutral">取價失敗</span> : null}
         </span>
       </td>
-      <td className={styles.muted}>
+      {/* 取價失敗 outranks 庫存: when the shop could not be read, what it last
+          said about stock is no more current than its price, so neither is
+          presented as fact. */}
+      <td className={stockClass(offer)}>
         {offer.stale ? "暫時無法取得" : offer.stockStatus}
       </td>
       <td className={styles.numeric}>{offer.discountLabel ?? "—"}</td>

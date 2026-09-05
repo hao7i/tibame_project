@@ -117,6 +117,19 @@
   color: color-mix(in srgb, var(--color-text) 55%, transparent);
 }
 
+/**
+ * 缺貨.
+ *
+ * The other 庫存 states are muted because they are all some flavour of "you can
+ * buy this"; 缺貨 is the one that changes what the reader can do, so it is the
+ * one that gets read at full strength. Weight as well as colour, so it does not
+ * rely on colour alone.
+ */
+.outOfStock {
+  color: var(--color-danger);
+  font-weight: 500;
+}
+
 .numeric {
   text-align: right;
 }

@@ -47,6 +47,13 @@
   --color-accent-2-800: #314457;
   --color-accent-2-900: #1f2d3a;
 
+  /* 缺貨 and nothing else so far. The Industry palette the rest of this file
+     was ported from has no red at all, so this is an addition rather than a
+     token that was already there — deliberately desaturated to sit beside the
+     steel blues, and dark enough to carry the contrast the design system asks
+     of coloured text on the light ground. */
+  --color-danger: #a33b32;
+
   --font-heading: var(--font-barlow-condensed), system-ui, sans-serif;
   --font-heading-weight: 600;
   --font-body: var(--font-barlow), system-ui, sans-serif;
