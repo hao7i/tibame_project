@@ -4,18 +4,11 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { App } from "antd";
 import { useRouter } from "next/navigation";
-import styles from "./LookupNotice.module.css";
-
-type Outcome =
-  | { kind: "imported"; count: number }
-  | { kind: "none" }
-  | { kind: "error" };
 
 type LookupState = {
   /** True while a 找書 is in flight, whichever screen started it. */
@@ -38,12 +31,18 @@ const LookupContext = createContext<LookupState | null>(null);
  * navigation is client-side, so this provider survives moving from 搜尋結果 to
  * anywhere else — which means the reader can wander off and still be told when
  * the book arrives.
+ *
+ * The outcome is an antd notification, the same as 登入 and 登出: 找書 has already
+ * finished by the time there is anything to say, so there is nothing for the
+ * reader to decide and no reason to make them dismiss a modal to carry on. It
+ * also sidesteps what made the success case invisible before — a <dialog> holds
+ * its open state in the DOM rather than in React, so the router.refresh() that
+ * brings the new book into the list closed it again.
  */
 export function LookupProvider({ children }: { children: ReactNode }) {
+  const { notification } = App.useApp();
   const router = useRouter();
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [running, setRunning] = useState(false);
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
 
   const start = useCallback(
     (term: string) => {
@@ -55,7 +54,6 @@ export function LookupProvider({ children }: { children: ReactNode }) {
       }
 
       setRunning(true);
-      setOutcome(null);
 
       fetch("/api/lookups", {
         method: "POST",
@@ -64,68 +62,44 @@ export function LookupProvider({ children }: { children: ReactNode }) {
       })
         .then(async (response) => {
           if (!response.ok) {
-            return { kind: "error" } as Outcome;
+            throw new Error(String(response.status));
           }
           const body = (await response.json()) as { imported: string[] };
-          return body.imported.length > 0
-            ? ({ kind: "imported", count: body.imported.length } as Outcome)
-            : ({ kind: "none" } as Outcome);
+          return body.imported.length;
         })
-        .catch(() => ({ kind: "error" }) as Outcome)
-        .then((result) => {
-          setRunning(false);
-          setOutcome(result);
-        });
+        .then((imported) => {
+          if (imported > 0) {
+            notification.success({
+              message: "找到了",
+              description: `收錄了 ${imported} 本書，價格也一併取回來了。`,
+              placement: "top",
+            });
+            // Only worth re-running the screen when something actually arrived
+            // for it to show.
+            router.refresh();
+          } else {
+            notification.info({
+              message: "找書完成",
+              description: "各通路都沒有這個書名或 ISBN 的書。",
+              placement: "top",
+            });
+          }
+        })
+        .catch(() => {
+          notification.error({
+            message: "找書失敗",
+            description: "請稍後再試一次。",
+            placement: "top",
+          });
+        })
+        .finally(() => setRunning(false));
     },
-    [running],
+    [running, notification, router],
   );
-
-  useEffect(() => {
-    if (outcome) {
-      dialogRef.current?.showModal();
-    }
-  }, [outcome]);
 
   return (
     <LookupContext.Provider value={{ running, start }}>
       {children}
-
-      <dialog
-        ref={dialogRef}
-        className={`dialog ${styles.notice}`}
-        aria-labelledby="lookup-notice-title"
-        onClose={() => {
-          const arrived = outcome?.kind === "imported";
-          setOutcome(null);
-          // Refreshed on dismissal, never while the 彈窗 is up. router.refresh()
-          // re-renders the server tree this provider hangs from, which took the
-          // just-opened dialog down with it — the reason a successful 找書 showed
-          // nothing while 查無 and 失敗 both did.
-          if (arrived) {
-            router.refresh();
-          }
-        }}
-      >
-        <p id="lookup-notice-title" className="dialog-title">
-          {outcome?.kind === "imported" ? "找到了" : "找書完成"}
-        </p>
-        <p className="dialog-body">
-          {outcome?.kind === "imported"
-            ? `收錄了 ${outcome.count} 本書，價格也一併取回來了。`
-            : outcome?.kind === "none"
-              ? "各通路都沒有這個書名或 ISBN 的書。"
-              : "找書失敗，請稍後再試一次。"}
-        </p>
-        <div className="dialog-actions">
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => dialogRef.current?.close()}
-          >
-            知道了
-          </button>
-        </div>
-      </dialog>
     </LookupContext.Provider>
   );
 }
