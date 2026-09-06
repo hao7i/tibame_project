@@ -5,14 +5,14 @@
 <th:block th:fragment="content">
   <h1>總覽</h1>
   <p class="sub">
-    收錄 <span th:text="${channelCount}">6</span> 家通路、<span th:text="${#lists.size(works)}">6</span> 件作品。
+    收錄 <span th:text="${channelCount}">5</span> 家通路、<span th:text="${#lists.size(works)}">6</span> 件作品。
   </p>
 
   <form th:action="@{/admin/refresh}" method="post">
     <button type="submit">手動觸發一次取價</button>
     <label style="margin-left:10px"><input type="checkbox" name="force" value="true"> 強制重新取價（忽略 6 小時窗）</label>
     <p class="muted" style="margin-top:8px">
-      金石堂與讀冊生活為真實取價，其餘四家為示意實作。未勾選強制時，6 小時內剛取過的報價會被略過，
+      五家通路全部為真實取價。未勾選強制時，6 小時內剛取過的報價會被略過，
       以免每次點擊都去打對方網站。
     </p>
   </form>

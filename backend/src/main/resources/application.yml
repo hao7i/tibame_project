@@ -50,7 +50,7 @@ bookprice:
     min-interval-ms: 600
     # 設計稿的「價格每 6 小時更新一次」；窗內的報價不會再去問一次。
     freshness-hours: 6
-    # 真實取價只開這兩家：robots.txt 允許、商品頁為伺服器端渲染且帶 JSON-LD。
+    # 五家全部開啟真實取價：robots.txt 允許、商品頁為伺服器端渲染，且價格能綁回 ISBN。
     # 關掉任一家會退回示意實作，網站仍然可以展示。
     kingstone:
       live: true
